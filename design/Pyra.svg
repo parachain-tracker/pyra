@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="946px" height="348px" viewBox="0 0 946 348" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>Pyra</title>
+    <desc>Pyra logo(MVP)</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Artboard" transform="translate(-478.000000, -95.000000)">
+            <g id="Pyra" transform="translate(478.000000, 95.000000)">
+                <rect id="Rectangle" fill="#D2666C" x="0" y="0" width="348" height="348"></rect>
+                <text id="P" font-family="AppleGothic" font-size="280" font-weight="normal" fill="#FFFFFF">
+                    <tspan x="102.08" y="284">P</tspan>
+                </text>
+                <text stroke="#979797" stroke-width="0.2" fill="#2F2F2F" font-family="AppleGothic" font-size="250" font-weight="normal">
+                    <tspan x="434.375" y="272">Pyra  </tspan>
+                </text>
+            </g>
+        </g>
+    </g>
+</svg>
