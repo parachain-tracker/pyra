@@ -1,17 +1,17 @@
 [package]
 name = "pyra"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["hskang9 <hskang9@gmail.com>"]
 edition = "2018"
 description = "Pyra is a high-level distributed ledger development interface, written in Rust and capable of running on top of Substrate, Polkadot, Edgeware, or Straightedge"
-license = "MIT"
+license-file = "LICENSE"
 readme = "README.md"
 keywords = ["cli", "distributed-ledger", "interface"]
 categories = ["command-line-utilities"]
-repository = "https://github.com/hskang9/pyra"
+repository = "https://github.com/parachain-tracker/pyra"
 
 [badges]
-travis-ci = { repository = "hskang9/pyra", branch = "master" }
+travis-ci = { repository = "parachain-tracker/pyra", branch = "master" }
 
 [dependencies]
 dirs = "2.0.2"
