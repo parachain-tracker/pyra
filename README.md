@@ -1,6 +1,6 @@
 # Pyra: Distributed Ledger for the people
 
-![Pyra logo](design/Pyra.svg)
+![Pyra logo](design/Pyra.png)
 
 ## No more techno-aristocracy.
 
