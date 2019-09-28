@@ -55,7 +55,7 @@ fn main() {
         None => cli::open_project(settings_data, args.project),
         Some(ref x) if x == "open" => cli::open_project(settings_data, args.project),
         Some(ref x) if x == "init" => cli::init_project(settings_data),
-        Some(ref x) if x == "add" || x == "save" => cli::add_project(settings_data),
+        Some(ref x) if x == "add" || x == "save" => cli::add_project(settings_data, None),
         Some(ref x) if x == "remove" => cli::remove_project(settings_data),
         Some(ref x) if x == "seteditor" => cli::set_editor(settings_data),
         Some(ref x) if x == "run" => cli::run_substrate(settings_data),

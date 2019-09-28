@@ -97,18 +97,32 @@ pub fn init_project(settings_data: serde_json::value::Value) {
         .with_prompt(&"The name of the parachain".magenta().bold())
         .interact()
         .unwrap();
-    let node_name = format!("{}-node", project_name);
+    let node_name = format!("{}-node", project_name.clone());
     let author: String = Input::with_theme(&theme)
         .with_prompt(&"The name of the author".magenta().bold())
         .interact()
         .unwrap();
         
-    if Confirmation::new().with_text("Do you want to add current directory as a project?").interact().unwrap() {
-        add_project(settings_data);
+    add_project(settings_data, Some(project_name.clone()));
+    
+    let project_dir = format!("{}/{}", env::current_dir().unwrap().display(), project_name);
+
+    pause("The installation will take long which is roughly about 15 minutes \u{1f422}.\nPress any key to continue and wait with \u{2615} or Ctrl + C to quit...".to_string());
+
+    println!(
+            "Generating project_directory at {}...",
+            project_dir.clone()
+    );
+    match fs::create_dir_all(project_dir.clone()) {
+            Ok(_) => (),
+            Err(why) => panic!("Failed to create dir: {}", why),
     }
 
-    pause("The installation will take long which is roughly about 15 minutes \u{1f391}.\nPress any key to continue and wait with \u{2615} or Ctrl + C to quit...".to_string());
-
+    match env::set_current_dir(project_dir) {
+        Ok(_) => (),
+        Err(why) => panic!("Failed to set current dir: {}", why)
+    }
+    
     Command::new("bash")
         .args(&[&format!("{}/.cargo/bin/substrate-node-new", dirs::home_dir().unwrap().display()),&node_name, &author])
         .spawn()
@@ -156,14 +170,21 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value) {
     let path = find_project_path(project_name.clone(), settings_data);
     
     let substrate_ui_path = format!("{}/{}-ui", path, project_name.clone());
-    env::set_current_dir(&substrate_ui_path);
+        match env::set_current_dir(&substrate_ui_path) {
+        Ok(_) => (),
+        Err(why) => panic!("Failed to set current dir: {}", why)
+    }
     println!("{:?}", &substrate_ui_path);
     reg_for_sigs();
     let command = Command::new("yarn")
         .args(&["run".to_string(), "dev".to_string()])
         .spawn()
         .expect("Failed to run substrate ui");
-    webbrowser::open("http://localhost:8000");  
+
+    match webbrowser::open("http://localhost:8000") {
+        Ok(_) => (),
+        Err(why) => panic!("Failed to open webbrowser: {}", why)
+    }  
 }
 
 pub fn pause(note: String) {
@@ -178,27 +199,29 @@ pub fn pause(note: String) {
 }
 
 
-pub fn add_project(settings_data: serde_json::value::Value) {
-    let mut next_settings = settings_data.clone();
-    let path = env::current_dir();
-    let hint = env::current_dir().unwrap().display().to_string().split("/").last().unwrap().to_string();
+pub fn add_project(settings_data: serde_json::value::Value, project: Option<String>) {
+    let suggestion = env::current_dir().unwrap().display().to_string().split("/").last().unwrap().to_string();
     let theme = CustomPromptCharacterTheme::new(':');
-    let project_name: String = Input::with_theme(&theme)
+    let project_name = match project {
+        None => Input::with_theme(&theme)
         .with_prompt("Project Name \u{2692}")
         .allow_empty(true)
-        .default(hint)
+        .default(suggestion)
         .interact()
-        .unwrap();
-    let result = project_name.clone();
-
+        .unwrap(), 
+        Some(x) => x.to_string()
+        };
+    let mut next_settings = settings_data.clone();
+    let path = env::current_dir();
+    
     // Check whether the project already exists
-    if project_exists(result.clone(), next_settings.clone()) {
+    if project_exists(project_name.clone(), next_settings.clone()) {
         println!("{}", format!("{}", "Project with this name already exists".red().bold()));
         panic!();   
     }
 
     let new_project: Project = Project {
-        name: result.clone(),
+        name: project_name.clone(),
         path: path.unwrap().display().to_string(),
         editor: settings_data["commandToOpen"].as_str().unwrap().to_string(),
     };
@@ -208,7 +231,7 @@ pub fn add_project(settings_data: serde_json::value::Value) {
     // Save next settings file
     println!(
         "{}",
-        format!("Project {} is successfully added", result.cyan().bold()).green()
+        format!("Project {} is successfully added", project_name.cyan().bold()).green()
     );
     save_settings(next_settings);
 }
