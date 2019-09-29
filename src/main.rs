@@ -61,6 +61,7 @@ fn main() {
         Some(ref x) if x == "run" => cli::run_substrate(settings_data),
         Some(ref x) if x == "build" => cli::build_substrate(settings_data),
         Some(ref x) if x == "interact" => cli::run_substrate_ui(settings_data),
+        Some(ref x) if x == "purge" => cli::purge_substrate(settings_data),
         Some(ref _x) => {
             println!("{}", format!("Command '{}' not found", _x).red());
             cli::help()

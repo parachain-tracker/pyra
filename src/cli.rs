@@ -52,7 +52,7 @@ pub fn browse(prompt: &str, settings_data: serde_json::value::Value) -> String {
 }
 
 pub fn open_project(settings_data: serde_json::value::Value, project: Option<String>) {
-    let open_prompt: &str = &format!("{} Select project to open", "?".green());
+    let open_prompt: &str = &prompt("Select project to open");
     match project {
         // if input is none give selections
         None => {
@@ -135,8 +135,8 @@ pub fn init_project(settings_data: serde_json::value::Value) {
 }
 
 pub fn run_substrate(settings_data: serde_json::value::Value) {
-    let substrate_prompt = "Which Substrate node would you like to operate?";
-    let project_name = browse(substrate_prompt, settings_data.clone());
+    let run_prompt = &prompt("Which Substrate node would you like to operate?");
+    let project_name = browse(run_prompt, settings_data.clone());
     let path = find_project_path(project_name.clone(), settings_data);
     
     let substrate_bin_path = format!("{}/{}-node/target/release/{}-node", path, project_name.clone(), project_name.clone());
@@ -146,16 +146,44 @@ pub fn run_substrate(settings_data: serde_json::value::Value) {
         .spawn()
         .expect("Failed to run substrate binary");
     let pid = command.id().to_string().green().bold();
-    format!("Substrate daemon running at pid {}. kill the process with `kill {}` command", pid, pid).magenta().bold().to_string();
+    println!("{}",format!("Substrate daemon running at pid {}. kill the process with `kill {}` command", pid, pid).magenta().bold().to_string());
+}
+
+pub fn purge_substrate(settings_data: serde_json::value::Value) {
+    let purge_prompt = &prompt("Which Substrate node would you like to purge and restart?");
+    let project_name = browse(purge_prompt, settings_data.clone());
+    let path = find_project_path(project_name.clone(), settings_data);
+    
+    let substrate_bin_path = format!("{}/{}-node/target/release/{}-node", path, project_name.clone(), project_name.clone());
+    if Confirmation::new()
+        .with_text("\u{26A0} Are you sure you want to remove the whole chain data?")
+        .interact()
+        .unwrap()
+    {
+        Command::new(&substrate_bin_path)
+        .args(&["purge-chain","--dev", "-y"])
+        .spawn()
+        .expect("Failed to purge Substrate chain data");
+        println!("{}", format!("{} chain is now purging with significant update. Start fresh with the new blank slate", project_name).magenta().bold().to_string());
+    } else {
+        println!("It's okay, take your time :)");
+        return;
+    }
 }
 
 pub fn build_substrate(settings_data: serde_json::value::Value) {
-    let substrate_prompt = "Which Substrate node would you like to build?";
+    let substrate_prompt = &prompt("Which Substrate node would you like to build?");
     let project_name = browse(substrate_prompt, settings_data.clone());
     let path = find_project_path(project_name.clone(), settings_data);
+
+    let substrate_runtime_build_path = format!("{}/{}-node/scripts/build.sh", path.clone(), project_name.clone());
+    // Build runtime WASM image
+    Command::new("bash")
+        .arg(substrate_runtime_build_path)
+        .spawn()
+        .expect("Failed to build Substrate runtime wasm image");
     
     let substrate_build_path = format!("{}/{}-node/Cargo.toml", path, project_name.clone());
-    println!("{:?}", substrate_build_path);
     let command = Command::new("cargo")
         .args(&["build".to_string(), "--release".to_string(), format!("--manifest-path={}", substrate_build_path)])
         .spawn()
@@ -165,7 +193,7 @@ pub fn build_substrate(settings_data: serde_json::value::Value) {
 }
 
 pub fn run_substrate_ui(settings_data: serde_json::value::Value) {
-    let substrate_prompt = "Which Substrate node would you like to interact?";
+    let substrate_prompt = &prompt("Which Substrate node would you like to interact?");
     let project_name = browse(substrate_prompt, settings_data.clone());
     let path = find_project_path(project_name.clone(), settings_data);
     
@@ -176,7 +204,7 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value) {
     }
     println!("{:?}", &substrate_ui_path);
     reg_for_sigs();
-    let command = Command::new("yarn")
+    Command::new("yarn")
         .args(&["run".to_string(), "dev".to_string()])
         .spawn()
         .expect("Failed to run substrate ui");
@@ -185,6 +213,12 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value) {
         Ok(_) => (),
         Err(why) => panic!("Failed to open webbrowser: {}", why)
     }  
+}
+
+
+// TODO: run Polkascan app
+pub fn run_scanner(settings_data: serde_json::value::Value) {
+    
 }
 
 pub fn pause(note: String) {
@@ -250,7 +284,7 @@ pub fn save_settings(settings_data: serde_json::value::Value) {
 pub fn remove_project(settings_data: serde_json::value::Value) {
     let mut next_settings = settings_data.clone();
 
-    let remove_prompt: &str = &format!("{} Select project to remove", "?".green());
+    let remove_prompt: &str = &prompt("Select project to remove");
     let result = browse(remove_prompt, settings_data);
 
     // Remove the project in json file
@@ -282,7 +316,7 @@ pub fn delete_project_json(
 pub fn set_editor(settings_data: serde_json::value::Value) {
     let mut next_settings = settings_data.clone();
 
-    let seteditor_prompt: &str = &format!("{} Select project to set editor", "?".green());
+    let seteditor_prompt: &str = &prompt("Select project to set editor");
     let result = browse(seteditor_prompt, settings_data);
 
     let theme = CustomPromptCharacterTheme::new('>');
@@ -404,4 +438,8 @@ pub fn reg_for_sigs() {
 fn on_sigint() {
     warn!("SIGINT caught - exiting");
     std::process::exit(128 + signal_hook::SIGINT);
+}
+
+fn prompt(question: &str) -> String {
+    format!("{} {}", "?".green(),  question)
 }
