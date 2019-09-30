@@ -20,6 +20,8 @@ struct Project {
     editor: String,
 }
 
+static PLATFORMS:[&'static str; 3] = ["substrate", "subsocial", "kilt"]; 
+
 pub fn list_projects(settings_data: serde_json::value::Value) -> Vec<String> {
     let mut selections = vec![];
     for i in 0..settings_data["projects"].as_array().unwrap().len() {
@@ -95,20 +97,24 @@ pub fn open_project(settings_data: serde_json::value::Value, project: Option<Str
 pub fn init_project(settings_data: serde_json::value::Value) {
     let theme = CustomPromptCharacterTheme::new(':');
     let project_name: String = Input::with_theme(&theme)
-        .with_prompt(&prompt(&format!("{}", "The Name of the blockchain".magenta().bold())))
+        .with_prompt(&prompt(&bold("The Name of the blockchain")))
         .interact()
         .unwrap();
     let node_name = format!("{}-node", project_name.clone());
     let author: String = Input::with_theme(&theme)
-        .with_prompt(&prompt(&format!("{}", "The Author".magenta().bold())))
+        .with_prompt(&prompt(&bold("The Author")))
         .interact()
         .unwrap();
-
-    let platform_name: String = Input::with_theme(&theme)
-        .with_prompt(&prompt(&format!("{}", "The blockchain platform".magenta().bold())))
-        .interact()
-        .unwrap();
-        
+    
+    let prompt = prompt("Blockchain platform to develop");
+            
+    let selection =  Select::with_theme(&ColorfulTheme::default())
+            .with_prompt(&prompt)
+            .default(0)
+            .items(&PLATFORMS)
+            .interact()
+            .unwrap(); 
+    let platform_name = PLATFORMS[selection].to_string();
     add_project(settings_data, Some(project_name.clone()), Some(platform_name));
     
     let project_dir = format!("{}/{}", env::current_dir().unwrap().display(), project_name);
@@ -253,14 +259,18 @@ pub fn add_project(settings_data: serde_json::value::Value, project: Option<Stri
         Some(x) => x.to_string()
         };
     let platform_name = match platform {
-        None => Input::with_theme(&theme)
-        .with_prompt("Platform Name \u{1F4E6}")
-        .allow_empty(true)
-        .default("substrate".to_string())
-        .interact()
-        .unwrap(), 
+        None => { 
+            let prompt = prompt("Blockchain platform to develop");
+            let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt(&prompt)
+            .default(0)
+            .items(&PLATFORMS)
+            .interact()
+            .unwrap(); 
+            PLATFORMS[selection].to_string()
+        }, 
         Some(x) => x.to_string()
-        };
+    };
     let mut next_settings = settings_data.clone();
     let path = env::current_dir();
     
@@ -470,4 +480,8 @@ fn on_sigint() {
 
 fn prompt(question: &str) -> String {
     format!("{} {}", "?".green(),  question)
+}
+
+fn bold(text: &str) -> String {
+    format!("{}", text.bold())
 }
