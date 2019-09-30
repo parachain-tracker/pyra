@@ -16,6 +16,7 @@ use webbrowser;
 struct Project {
     name: String,
     path: String,
+    platform: String,
     editor: String,
 }
 
@@ -94,16 +95,21 @@ pub fn open_project(settings_data: serde_json::value::Value, project: Option<Str
 pub fn init_project(settings_data: serde_json::value::Value) {
     let theme = CustomPromptCharacterTheme::new(':');
     let project_name: String = Input::with_theme(&theme)
-        .with_prompt(&"The name of the parachain".magenta().bold())
+        .with_prompt(&prompt(&format!("{}", "The Name of the blockchain".magenta().bold())))
         .interact()
         .unwrap();
     let node_name = format!("{}-node", project_name.clone());
     let author: String = Input::with_theme(&theme)
-        .with_prompt(&"The name of the author".magenta().bold())
+        .with_prompt(&prompt(&format!("{}", "The Author".magenta().bold())))
+        .interact()
+        .unwrap();
+
+    let platform_name: String = Input::with_theme(&theme)
+        .with_prompt(&prompt(&format!("{}", "The blockchain platform".magenta().bold())))
         .interact()
         .unwrap();
         
-    add_project(settings_data, Some(project_name.clone()));
+    add_project(settings_data, Some(project_name.clone()), Some(platform_name));
     
     let project_dir = format!("{}/{}", env::current_dir().unwrap().display(), project_name);
 
@@ -184,6 +190,7 @@ pub fn build_substrate(settings_data: serde_json::value::Value) {
         .expect("Failed to build Substrate runtime wasm image");
     
     let substrate_build_path = format!("{}/{}-node/Cargo.toml", path, project_name.clone());
+    // Build Substrate binary from runtime wasm image
     let command = Command::new("cargo")
         .args(&["build".to_string(), "--release".to_string(), format!("--manifest-path={}", substrate_build_path)])
         .spawn()
@@ -233,7 +240,7 @@ pub fn pause(note: String) {
 }
 
 
-pub fn add_project(settings_data: serde_json::value::Value, project: Option<String>) {
+pub fn add_project(settings_data: serde_json::value::Value, project: Option<String>, platform: Option<String>) {
     let suggestion = env::current_dir().unwrap().display().to_string().split("/").last().unwrap().to_string();
     let theme = CustomPromptCharacterTheme::new(':');
     let project_name = match project {
@@ -241,6 +248,15 @@ pub fn add_project(settings_data: serde_json::value::Value, project: Option<Stri
         .with_prompt("Project Name \u{2692}")
         .allow_empty(true)
         .default(suggestion)
+        .interact()
+        .unwrap(), 
+        Some(x) => x.to_string()
+        };
+    let platform_name = match platform {
+        None => Input::with_theme(&theme)
+        .with_prompt("Platform Name \u{1F4E6}")
+        .allow_empty(true)
+        .default("substrate".to_string())
         .interact()
         .unwrap(), 
         Some(x) => x.to_string()
@@ -257,6 +273,7 @@ pub fn add_project(settings_data: serde_json::value::Value, project: Option<Stri
     let new_project: Project = Project {
         name: project_name.clone(),
         path: path.unwrap().display().to_string(),
+        platform: platform_name,
         editor: settings_data["commandToOpen"].as_str().unwrap().to_string(),
     };
     let p = serde_json::to_value(new_project).unwrap();
@@ -375,6 +392,17 @@ pub fn find_project_path(name: String, settings_data: serde_json::value::Value) 
     for i in 0..settings_data["projects"].as_array().unwrap().len() {
         let project = settings_data["projects"][i]["name"].as_str().unwrap();
         let path = settings_data["projects"][i]["path"].as_str().unwrap();
+        if project == name {
+            return path.to_string();
+        }
+    }
+    panic!("setting file is broken".red());
+}
+
+pub fn find_project_platform(name: String, settings_data: serde_json::value::Value) -> String {
+    for i in 0..settings_data["projects"].as_array().unwrap().len() {
+        let project = settings_data["projects"][i]["name"].as_str().unwrap();
+        let path = settings_data["projects"][i]["platform"].as_str().unwrap();
         if project == name {
             return path.to_string();
         }
