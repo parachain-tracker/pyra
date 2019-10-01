@@ -12,6 +12,12 @@ struct Cli {
     pattern: Option<String>,
 
     project: Option<String>,
+
+    #[structopt(short = "i", long = "ui", default_value = "gav")]
+    ui: String,
+
+    #[structopt(short = "t", long = "target", default_value = "whole")]
+    target: String
 }
 
 fn main() {
@@ -60,7 +66,7 @@ fn main() {
         Some(ref x) if x == "seteditor" => cli::set_editor(settings_data),
         Some(ref x) if x == "run" => cli::run_substrate(settings_data),
         Some(ref x) if x == "build" => cli::build_substrate(settings_data),
-        Some(ref x) if x == "interact" => cli::run_substrate_ui(settings_data),
+        Some(ref x) if x == "interact" => cli::run_substrate_ui(settings_data, Some(args.ui)),
         Some(ref x) if x == "purge" => cli::purge_substrate(settings_data),
         Some(ref _x) => {
             println!("{}", format!("Command '{}' not found", _x).red());

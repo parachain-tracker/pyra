@@ -1,15 +1,17 @@
 use std::env;
 extern crate dirs;
-use dialoguer::{theme::ColorfulTheme, theme::CustomPromptCharacterTheme, Confirmation, Input, Select};
+use dialoguer::{
+    theme::ColorfulTheme, theme::CustomPromptCharacterTheme, Confirmation, Input, Select,
+};
 use serde_json::json;
 use std::fs;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io;
+use std::io::prelude::*;
 use std::process::Command;
 extern crate colored;
-use serde::{Deserialize, Serialize};
 use colored::*;
+use serde::{Deserialize, Serialize};
 use webbrowser;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -20,7 +22,7 @@ struct Project {
     editor: String,
 }
 
-static PLATFORMS:[&'static str; 3] = ["substrate", "subsocial", "kilt"]; 
+static PLATFORMS: [&'static str; 3] = ["substrate", "subsocial", "kilt"];
 
 pub fn list_projects(settings_data: serde_json::value::Value) -> Vec<String> {
     let mut selections = vec![];
@@ -105,77 +107,112 @@ pub fn init_project(settings_data: serde_json::value::Value) {
         .with_prompt(&prompt(&bold("The Author")))
         .interact()
         .unwrap();
-    
     let prompt = prompt("Blockchain platform to develop");
-            
-    let selection =  Select::with_theme(&ColorfulTheme::default())
-            .with_prompt(&prompt)
-            .default(0)
-            .items(&PLATFORMS)
-            .interact()
-            .unwrap(); 
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt(&prompt)
+        .default(0)
+        .items(&PLATFORMS)
+        .interact()
+        .unwrap();
     let platform_name = PLATFORMS[selection].to_string();
-    add_project(settings_data, Some(project_name.clone()), Some(platform_name));
-    
+    add_project(
+        settings_data,
+        Some(project_name.clone()),
+        Some(platform_name),
+    );
     let project_dir = format!("{}/{}", env::current_dir().unwrap().display(), project_name);
 
     pause("The installation will take long which is roughly about 15 minutes \u{1f422}.\nPress any key to continue and wait with \u{2615} or Ctrl + C to quit...".to_string());
 
-    println!(
-            "Generating project_directory at {}...",
-            project_dir.clone()
-    );
+    println!("Generating project_directory at {}...", project_dir.clone());
     match fs::create_dir_all(project_dir.clone()) {
-            Ok(_) => (),
-            Err(why) => panic!("Failed to create dir: {}", why),
+        Ok(_) => (),
+        Err(why) => panic!("Failed to create dir: {}", why),
     }
 
     match env::set_current_dir(project_dir) {
         Ok(_) => (),
-        Err(why) => panic!("Failed to set current dir: {}", why)
+        Err(why) => panic!("Failed to set current dir: {}", why),
     }
-    
     Command::new("bash")
-        .args(&[&format!("{}/.cargo/bin/substrate-node-new", dirs::home_dir().unwrap().display()),&node_name, &author])
+        .args(&[
+            &format!(
+                "{}/.cargo/bin/substrate-node-new",
+                dirs::home_dir().unwrap().display()
+            ),
+            &node_name,
+            &author,
+        ])
         .spawn()
         .expect("Failed to process substrate command");
 
     Command::new("bash")
-        .args(&[&format!("{}/.cargo/bin/substrate-ui-new", dirs::home_dir().unwrap().display()),&project_name])
+        .args(&[
+            &format!(
+                "{}/.cargo/bin/substrate-ui-new",
+                dirs::home_dir().unwrap().display()
+            ),
+            &project_name,
+        ])
         .spawn()
-        .expect("Failed to process substrate command");  
+        .expect("Failed to process substrate command");
+
+    Command::new("git")
+        .args(&["clone", "https://github.com/polkadot-js/apps.git"])
+        .spawn()
+        .expect("Failed to process git command");
 }
 
 pub fn run_substrate(settings_data: serde_json::value::Value) {
     let run_prompt = &prompt("Which Substrate node would you like to operate?");
     let project_name = browse(run_prompt, settings_data.clone());
     let path = find_project_path(project_name.clone(), settings_data);
-    
-    let substrate_bin_path = format!("{}/{}-node/target/release/{}-node", path, project_name.clone(), project_name.clone());
+
+    let substrate_bin_path = format!(
+        "{}/{}-node/target/release/{}-node",
+        path,
+        project_name.clone(),
+        project_name.clone()
+    );
     println!("{:?}", substrate_bin_path);
     let command = Command::new(&substrate_bin_path)
         .arg("--dev")
         .spawn()
         .expect("Failed to run substrate binary");
     let pid = command.id().to_string().green().bold();
-    println!("{}",format!("Substrate daemon running at pid {}. kill the process with `kill {}` command", pid, pid).magenta().bold().to_string());
+    println!(
+        "{}",
+        format!(
+            "Substrate daemon running at pid {}. kill the process with `kill {}` command",
+            pid, pid
+        )
+        .magenta()
+        .bold()
+        .to_string()
+    );
 }
 
 pub fn purge_substrate(settings_data: serde_json::value::Value) {
     let purge_prompt = &prompt("Which Substrate node would you like to purge and restart?");
     let project_name = browse(purge_prompt, settings_data.clone());
     let path = find_project_path(project_name.clone(), settings_data);
-    
-    let substrate_bin_path = format!("{}/{}-node/target/release/{}-node", path, project_name.clone(), project_name.clone());
+
+    let substrate_bin_path = format!(
+        "{}/{}-node/target/release/{}-node",
+        path,
+        project_name.clone(),
+        project_name.clone()
+    );
     if Confirmation::new()
         .with_text("\u{26A0} Are you sure you want to remove the whole chain data?")
         .interact()
         .unwrap()
     {
         Command::new(&substrate_bin_path)
-        .args(&["purge-chain","--dev", "-y"])
-        .spawn()
-        .expect("Failed to purge Substrate chain data");
+            .args(&["purge-chain", "--dev", "-y"])
+            .spawn()
+            .expect("Failed to purge Substrate chain data");
         println!("{}", format!("{} chain is now purging with significant update. Start fresh with the new blank slate", project_name).magenta().bold().to_string());
     } else {
         println!("It's okay, take your time :)");
@@ -188,51 +225,88 @@ pub fn build_substrate(settings_data: serde_json::value::Value) {
     let project_name = browse(substrate_prompt, settings_data.clone());
     let path = find_project_path(project_name.clone(), settings_data);
 
-    let substrate_runtime_build_path = format!("{}/{}-node/scripts/build.sh", path.clone(), project_name.clone());
+    let substrate_runtime_build_path = format!(
+        "{}/{}-node/scripts/build.sh",
+        path.clone(),
+        project_name.clone()
+    );
     // Build runtime WASM image
     Command::new("bash")
         .arg(substrate_runtime_build_path)
         .spawn()
         .expect("Failed to build Substrate runtime wasm image");
-    
     let substrate_build_path = format!("{}/{}-node/Cargo.toml", path, project_name.clone());
     // Build Substrate binary from runtime wasm image
     let command = Command::new("cargo")
-        .args(&["build".to_string(), "--release".to_string(), format!("--manifest-path={}", substrate_build_path)])
+        .args(&[
+            "build".to_string(),
+            "--release".to_string(),
+            format!("--manifest-path={}", substrate_build_path),
+        ])
         .spawn()
         .expect("Failed to run substrate binary");
     let pid = command.id().to_string().green().bold();
-    format!("Substrate daemon running at pid {}. kill the process with `kill {}` command", pid, pid).magenta().bold().to_string();
+    format!(
+        "Substrate daemon running at pid {}. kill the process with `kill {}` command",
+        pid, pid
+    )
+    .magenta()
+    .bold()
+    .to_string();
 }
 
-pub fn run_substrate_ui(settings_data: serde_json::value::Value) {
+pub fn run_substrate_ui(settings_data: serde_json::value::Value, ui: Option<String>) {
     let substrate_prompt = &prompt("Which Substrate node would you like to interact?");
     let project_name = browse(substrate_prompt, settings_data.clone());
     let path = find_project_path(project_name.clone(), settings_data);
-    
     let substrate_ui_path = format!("{}/{}-ui", path, project_name.clone());
-        match env::set_current_dir(&substrate_ui_path) {
-        Ok(_) => (),
-        Err(why) => panic!("Failed to set current dir: {}", why)
+    let substrate_app_path = format!("{}/apps", path);
+    println!("{}", substrate_ui_path);
+    println!("{}", substrate_app_path);
+
+    match ui {
+        None => panic!("Should not happen"),
+        Some(ref x) if x == "gav" => {
+            match env::set_current_dir(&substrate_ui_path) {
+                Ok(_) => (),
+                Err(why) => panic!("Failed to set current dir: {}", why),
+            }
+            reg_for_sigs();
+            Command::new("yarn")
+                .args(&["run", "dev"])
+                .spawn()
+                .expect("Failed to run substrate ui");
+
+            match webbrowser::open("http://localhost:8000") {
+                Ok(_) => (),
+                Err(why) => panic!("Failed to open webbrowser: {}", why),
+            }
+        }
+        Some(ref x) if x == "apps" => {
+            match env::set_current_dir(&substrate_app_path) {
+                Ok(_) => (),
+                Err(why) => panic!("Failed to set current dir: {}", why),
+            }
+            reg_for_sigs();
+            Command::new("yarn")
+                .spawn()
+                .expect("Failed to run yarn");
+            Command::new("yarn")
+                .args(&["run", "start"])
+                .spawn()
+                .expect("Failed to start yarn app");
+
+            match webbrowser::open("http://localhost:3000") {
+                Ok(_) => (),
+                Err(why) => panic!("Failed to open webbrowser: {}", why),
+            }
+        },
+        Some(ref _x) => panic!("default value not set")
     }
-    println!("{:?}", &substrate_ui_path);
-    reg_for_sigs();
-    Command::new("yarn")
-        .args(&["run".to_string(), "dev".to_string()])
-        .spawn()
-        .expect("Failed to run substrate ui");
-
-    match webbrowser::open("http://localhost:8000") {
-        Ok(_) => (),
-        Err(why) => panic!("Failed to open webbrowser: {}", why)
-    }  
 }
-
 
 // TODO: run Polkascan app
-pub fn run_scanner(settings_data: serde_json::value::Value) {
-    
-}
+pub fn run_scanner(settings_data: serde_json::value::Value) {}
 
 pub fn pause(note: String) {
     let mut stdin = io::stdin();
@@ -245,44 +319,56 @@ pub fn pause(note: String) {
     let _ = stdin.read(&mut [0u8]).unwrap();
 }
 
-
-pub fn add_project(settings_data: serde_json::value::Value, project: Option<String>, platform: Option<String>) {
-    let suggestion = env::current_dir().unwrap().display().to_string().split("/").last().unwrap().to_string();
+pub fn add_project(
+    settings_data: serde_json::value::Value,
+    project: Option<String>,
+    platform: Option<String>,
+) {
+    let suggestion = env::current_dir()
+        .unwrap()
+        .display()
+        .to_string()
+        .split("/")
+        .last()
+        .unwrap()
+        .to_string();
     let theme = CustomPromptCharacterTheme::new(':');
     let project_name = match project {
         None => Input::with_theme(&theme)
-        .with_prompt("Project Name \u{2692}")
-        .allow_empty(true)
-        .default(suggestion)
-        .interact()
-        .unwrap(), 
-        Some(x) => x.to_string()
-        };
+            .with_prompt("Project Name \u{2692}")
+            .allow_empty(true)
+            .default(suggestion)
+            .interact()
+            .unwrap(),
+        Some(x) => x.to_string(),
+    };
     let platform_name = match platform {
-        None => { 
+        None => {
             let prompt = prompt("Blockchain platform to develop");
             let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt(&prompt)
-            .default(0)
-            .items(&PLATFORMS)
-            .interact()
-            .unwrap(); 
+                .with_prompt(&prompt)
+                .default(0)
+                .items(&PLATFORMS)
+                .interact()
+                .unwrap();
             PLATFORMS[selection].to_string()
-        }, 
-        Some(x) => x.to_string()
+        }
+        Some(x) => x.to_string(),
     };
     let mut next_settings = settings_data.clone();
     let path = env::current_dir();
-    
     // Check whether the project already exists
     if project_exists(project_name.clone(), next_settings.clone()) {
-        println!("{}", format!("{}", "Project with this name already exists".red().bold()));
-        panic!();   
+        println!(
+            "{}",
+            format!("{}", "Project with this name already exists".red().bold())
+        );
+        panic!();
     }
 
     let new_project: Project = Project {
         name: project_name.clone(),
-        path: path.unwrap().display().to_string(),
+        path: format!("{}/{}",path.unwrap().display(),project_name.clone()),
         platform: platform_name,
         editor: settings_data["commandToOpen"].as_str().unwrap().to_string(),
     };
@@ -292,7 +378,11 @@ pub fn add_project(settings_data: serde_json::value::Value, project: Option<Stri
     // Save next settings file
     println!(
         "{}",
-        format!("Project {} is successfully added", project_name.cyan().bold()).green()
+        format!(
+            "Project {} is successfully added",
+            project_name.cyan().bold()
+        )
+        .green()
     );
     save_settings(next_settings);
 }
@@ -395,7 +485,7 @@ Commands:
   deploy                       Deploy network in local/cloud environment
   interact                     Open Substrate ui in the doc
   publish                      Publish in parachaintracker\n"
-  )
+    )
 }
 
 pub fn find_project_path(name: String, settings_data: serde_json::value::Value) -> String {
@@ -441,7 +531,6 @@ pub fn project_exists(prop: String, settings_data: serde_json::value::Value) -> 
     false
 }
 
-
 pub fn open_editor(command: String, path: String) {
     Command::new(&command)
         .arg(&path)
@@ -458,13 +547,13 @@ pub fn path_exists(path: String) -> bool {
 
 // Listen to Ctrl-C
 extern crate signal_hook;
-use log::{warn, debug};
+use log::{debug, warn};
 
 pub fn reg_for_sigs() {
     unsafe { signal_hook::register(signal_hook::SIGINT, || on_sigint()) }
         .and_then(|_| {
-                debug!("Registered for SIGINT");
-                Ok(())
+            debug!("Registered for SIGINT");
+            Ok(())
         })
         .or_else(|e| {
             warn!("Failed to register for SIGINT {:?}", e);
@@ -479,7 +568,7 @@ fn on_sigint() {
 }
 
 fn prompt(question: &str) -> String {
-    format!("{} {}", "?".green(),  question)
+    format!("{} {}", "?".green(), question)
 }
 
 fn bold(text: &str) -> String {
