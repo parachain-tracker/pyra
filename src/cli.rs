@@ -13,6 +13,10 @@ extern crate colored;
 use colored::*;
 use serde::{Deserialize, Serialize};
 use webbrowser;
+use crate::platform::substrate;
+
+extern crate signal_hook;
+use log::{debug, warn};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Project {
@@ -220,11 +224,12 @@ pub fn purge_substrate(settings_data: serde_json::value::Value) {
     }
 }
 
-pub fn build_substrate(settings_data: serde_json::value::Value) {
+pub fn build_substrate(settings_data: serde_json::value::Value, target: String) {
     let substrate_prompt = &prompt("Which Substrate node would you like to build?");
     let project_name = browse(substrate_prompt, settings_data.clone());
     let path = find_project_path(project_name.clone(), settings_data);
 
+    
     let substrate_runtime_build_path = format!(
         "{}/{}-node/scripts/build.sh",
         path.clone(),
@@ -236,6 +241,9 @@ pub fn build_substrate(settings_data: serde_json::value::Value) {
         .spawn()
         .expect("Failed to build Substrate runtime wasm image");
     let substrate_build_path = format!("{}/{}-node/Cargo.toml", path, project_name.clone());
+    
+    if target == "runtime" {return;}
+
     // Build Substrate binary from runtime wasm image
     let command = Command::new("cargo")
         .args(&[
@@ -546,9 +554,6 @@ pub fn path_exists(path: String) -> bool {
 }
 
 // Listen to Ctrl-C
-extern crate signal_hook;
-use log::{debug, warn};
-
 pub fn reg_for_sigs() {
     unsafe { signal_hook::register(signal_hook::SIGINT, || on_sigint()) }
         .and_then(|_| {

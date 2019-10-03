@@ -5,6 +5,7 @@ use std::fs;
 extern crate colored;
 use colored::*;
 mod cli;
+mod platform;
 
 
 #[derive(StructOpt)]
@@ -17,7 +18,7 @@ struct Cli {
     ui: String,
 
     #[structopt(short = "t", long = "target", default_value = "whole")]
-    target: String
+    target: String,
 }
 
 fn main() {
@@ -65,7 +66,7 @@ fn main() {
         Some(ref x) if x == "remove" => cli::remove_project(settings_data),
         Some(ref x) if x == "seteditor" => cli::set_editor(settings_data),
         Some(ref x) if x == "run" => cli::run_substrate(settings_data),
-        Some(ref x) if x == "build" => cli::build_substrate(settings_data),
+        Some(ref x) if x == "build" => cli::build_substrate(settings_data, args.target),
         Some(ref x) if x == "interact" => cli::run_substrate_ui(settings_data, Some(args.ui)),
         Some(ref x) if x == "purge" => cli::purge_substrate(settings_data),
         Some(ref _x) => {
