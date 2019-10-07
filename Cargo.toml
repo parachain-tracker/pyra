@@ -23,8 +23,6 @@ colored = "1.8"
 webbrowser = "0.5.2"
 signal-hook = "0.1.7"
 log = "0.4"
-shiplift = "0.5"
-kube = "0.16.1"
 
 [[bin]]
 name="pyra"

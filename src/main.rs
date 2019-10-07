@@ -65,10 +65,10 @@ fn main() {
         Some(ref x) if x == "add" || x == "save" => cli::add_project(settings_data, None, None),
         Some(ref x) if x == "remove" => cli::remove_project(settings_data),
         Some(ref x) if x == "seteditor" => cli::set_editor(settings_data),
-        Some(ref x) if x == "run" => cli::run_substrate(settings_data),
-        Some(ref x) if x == "build" => cli::build_substrate(settings_data, args.target),
+        Some(ref x) if x == "run" => cli::run_project(settings_data),
+        Some(ref x) if x == "build" => cli::build_project(settings_data, args.target),
         Some(ref x) if x == "interact" => cli::run_substrate_ui(settings_data, Some(args.ui)),
-        Some(ref x) if x == "purge" => cli::purge_substrate(settings_data),
+        Some(ref x) if x == "purge" => cli::purge_chain(settings_data),
         Some(ref _x) => {
             println!("{}", format!("Command '{}' not found", _x).red());
             cli::help()

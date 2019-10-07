@@ -26,7 +26,7 @@ struct Project {
     editor: String,
 }
 
-static PLATFORMS: [&'static str; 3] = ["substrate", "subsocial", "kilt"];
+static PLATFORMS: [&'static str; 1] = ["substrate"];
 
 pub fn list_projects(settings_data: serde_json::value::Value) -> Vec<String> {
     let mut selections = vec![];
@@ -121,146 +121,63 @@ pub fn init_project(settings_data: serde_json::value::Value) {
         .unwrap();
     let platform_name = PLATFORMS[selection].to_string();
     add_project(
-        settings_data,
+        settings_data.clone(),
         Some(project_name.clone()),
-        Some(platform_name),
+        Some(platform_name.clone()),
     );
     let project_dir = format!("{}/{}", env::current_dir().unwrap().display(), project_name);
 
     pause("The installation will take long which is roughly about 15 minutes \u{1f422}.\nPress any key to continue and wait with \u{2615} or Ctrl + C to quit...".to_string());
 
     println!("Generating project_directory at {}...", project_dir.clone());
-    match fs::create_dir_all(project_dir.clone()) {
-        Ok(_) => (),
-        Err(why) => panic!("Failed to create dir: {}", why),
+
+    match &platform_name[..] {
+        "substrate" => {
+            substrate::init_substrate(settings_data, project_name)
+            },
+        _ => panic!("Not implemented yet")
+        // TODO: Add platform command functions for other parchain projects
     }
-
-    match env::set_current_dir(project_dir) {
-        Ok(_) => (),
-        Err(why) => panic!("Failed to set current dir: {}", why),
-    }
-    Command::new("bash")
-        .args(&[
-            &format!(
-                "{}/.cargo/bin/substrate-node-new",
-                dirs::home_dir().unwrap().display()
-            ),
-            &node_name,
-            &author,
-        ])
-        .spawn()
-        .expect("Failed to process substrate command");
-
-    Command::new("bash")
-        .args(&[
-            &format!(
-                "{}/.cargo/bin/substrate-ui-new",
-                dirs::home_dir().unwrap().display()
-            ),
-            &project_name,
-        ])
-        .spawn()
-        .expect("Failed to process substrate command");
-
-    Command::new("git")
-        .args(&["clone", "https://github.com/polkadot-js/apps.git"])
-        .spawn()
-        .expect("Failed to process git command");
 }
 
-pub fn run_substrate(settings_data: serde_json::value::Value) {
+pub fn run_project(settings_data: serde_json::value::Value) {
     let run_prompt = &prompt("Which Substrate node would you like to operate?");
     let project_name = browse(run_prompt, settings_data.clone());
-    let path = find_project_path(project_name.clone(), settings_data);
-
-    let substrate_bin_path = format!(
-        "{}/{}-node/target/release/{}-node",
-        path,
-        project_name.clone(),
-        project_name.clone()
-    );
-    println!("{:?}", substrate_bin_path);
-    let command = Command::new(&substrate_bin_path)
-        .arg("--dev")
-        .spawn()
-        .expect("Failed to run substrate binary");
-    let pid = command.id().to_string().green().bold();
-    println!(
-        "{}",
-        format!(
-            "Substrate daemon running at pid {}. kill the process with `kill {}` command",
-            pid, pid
-        )
-        .magenta()
-        .bold()
-        .to_string()
-    );
-}
-
-pub fn purge_substrate(settings_data: serde_json::value::Value) {
-    let purge_prompt = &prompt("Which Substrate node would you like to purge and restart?");
-    let project_name = browse(purge_prompt, settings_data.clone());
-    let path = find_project_path(project_name.clone(), settings_data);
-
-    let substrate_bin_path = format!(
-        "{}/{}-node/target/release/{}-node",
-        path,
-        project_name.clone(),
-        project_name.clone()
-    );
-    if Confirmation::new()
-        .with_text("\u{26A0} Are you sure you want to remove the whole chain data?")
-        .interact()
-        .unwrap()
-    {
-        Command::new(&substrate_bin_path)
-            .args(&["purge-chain", "--dev", "-y"])
-            .spawn()
-            .expect("Failed to purge Substrate chain data");
-        println!("{}", format!("{} chain is now purging with significant update. Start fresh with the new blank slate", project_name).magenta().bold().to_string());
-    } else {
-        println!("It's okay, take your time :)");
-        return;
+    let path = find_project_path(project_name.clone(), settings_data.clone());
+    let platform_name = find_project_platform(project_name.clone(), settings_data);
+    
+    match &platform_name[..] {
+        "substrate" => substrate::run_substrate(project_name, path),
+        _ => panic!("Not implemented yet")
+        // TODO: Add platform command functions for other parchain projects
     }
 }
 
-pub fn build_substrate(settings_data: serde_json::value::Value, target: String) {
+pub fn purge_chain(settings_data: serde_json::value::Value) {
+    let purge_prompt = &prompt("Which Substrate node would you like to purge and restart?");
+    let project_name = browse(purge_prompt, settings_data.clone());
+    let path = find_project_path(project_name.clone(), settings_data.clone());
+    let platform_name = find_project_platform(project_name.clone(), settings_data);
+
+    match &platform_name[..] {
+        "substrate" => substrate::purge_substrate(project_name, path),
+        _ => panic!("Not implemented yet")
+        // TODO: Add platform command functions for other parchain projects
+    }
+}
+
+pub fn build_project(settings_data: serde_json::value::Value, target: String) {
     let substrate_prompt = &prompt("Which Substrate node would you like to build?");
     let project_name = browse(substrate_prompt, settings_data.clone());
-    let path = find_project_path(project_name.clone(), settings_data);
-
+    let path = find_project_path(project_name.clone(), settings_data.clone());
+    let platform_name = find_project_platform(project_name.clone(), settings_data);
     
-    let substrate_runtime_build_path = format!(
-        "{}/{}-node/scripts/build.sh",
-        path.clone(),
-        project_name.clone()
-    );
-    // Build runtime WASM image
-    Command::new("bash")
-        .arg(substrate_runtime_build_path)
-        .spawn()
-        .expect("Failed to build Substrate runtime wasm image");
-    let substrate_build_path = format!("{}/{}-node/Cargo.toml", path, project_name.clone());
-    
-    if target == "runtime" {return;}
-
-    // Build Substrate binary from runtime wasm image
-    let command = Command::new("cargo")
-        .args(&[
-            "build".to_string(),
-            "--release".to_string(),
-            format!("--manifest-path={}", substrate_build_path),
-        ])
-        .spawn()
-        .expect("Failed to run substrate binary");
-    let pid = command.id().to_string().green().bold();
-    format!(
-        "Substrate daemon running at pid {}. kill the process with `kill {}` command",
-        pid, pid
-    )
-    .magenta()
-    .bold()
-    .to_string();
+    match &platform_name[..] {
+        "substrate" => substrate::build_substrate(project_name, path, target),
+        _ => panic!("Not implemented yet")
+        // TODO: Add platform command functions for other parchain projects
+    }
+  
 }
 
 pub fn run_substrate_ui(settings_data: serde_json::value::Value, ui: Option<String>) {
@@ -269,8 +186,6 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value, ui: Option<Stri
     let path = find_project_path(project_name.clone(), settings_data);
     let substrate_ui_path = format!("{}/{}-ui", path, project_name.clone());
     let substrate_app_path = format!("{}/apps", path);
-    println!("{}", substrate_ui_path);
-    println!("{}", substrate_app_path);
 
     match ui {
         None => panic!("Should not happen"),
@@ -387,7 +302,7 @@ pub fn add_project(
     println!(
         "{}",
         format!(
-            "Project {} is successfully added",
+            "Project {} is successfully registered in project registry",
             project_name.cyan().bold()
         )
         .green()
@@ -410,13 +325,18 @@ pub fn remove_project(settings_data: serde_json::value::Value) {
     let mut next_settings = settings_data.clone();
 
     let remove_prompt: &str = &prompt("Select project to remove");
-    let result = browse(remove_prompt, settings_data);
+    let result = browse(remove_prompt, settings_data.clone());
+    let path = find_project_path(result.clone().to_string(), settings_data.clone());
 
     // Remove the project in json file
     next_settings = delete_project_json(next_settings, result.to_string());
+    Command::new("rm")
+        .args(&["-rf", &path])
+        .spawn()
+        .expect("Failed to remove project directory");
     println!(
         "{}",
-        format!("Project {} is successfully removed", result.cyan().bold()).green()
+        format!("Project {} has been successfully removed", result.cyan().bold()).green()
     );
     save_settings(next_settings);
 }
@@ -510,9 +430,9 @@ pub fn find_project_path(name: String, settings_data: serde_json::value::Value) 
 pub fn find_project_platform(name: String, settings_data: serde_json::value::Value) -> String {
     for i in 0..settings_data["projects"].as_array().unwrap().len() {
         let project = settings_data["projects"][i]["name"].as_str().unwrap();
-        let path = settings_data["projects"][i]["platform"].as_str().unwrap();
+        let platform = settings_data["projects"][i]["platform"].as_str().unwrap();
         if project == name {
-            return path.to_string();
+            return platform.to_string();
         }
     }
     panic!("setting file is broken".red());
