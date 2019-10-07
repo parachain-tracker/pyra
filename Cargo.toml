@@ -1,6 +1,6 @@
 [package]
 name = "pyra"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Hyungsuk Kang <hskang9@gmail.com>"]
 edition = "2018"
 description = "Pyra is a high-level distributed ledger development interface, written in Rust and capable of running on top of Substrate, Polkadot, Edgeware, or Straightedge"
