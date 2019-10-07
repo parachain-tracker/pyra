@@ -26,7 +26,7 @@ pub fn init_substrate(settings_data: serde_json::value::Value, project_name: Str
     new_substrate_ui(project_name.clone());  
     new_polkadot_js_app(project_name);
 
-    println!("{}", "The project has been succesfully initialized. 🏗".green().bold());
+    
 }
 
 pub fn new_substrate_node(project_name: String) {

@@ -75,6 +75,7 @@ pub fn open_project(settings_data: serde_json::value::Value, project: Option<Str
                 let command = editor;
                 let path = find_project_path(project.clone().unwrap(), settings_data.clone());
                 open_editor(command, path);
+                return;
             }
             let command = settings_data["commandToOpen"].as_str().unwrap();
             let path = find_project_path(project.clone().unwrap(), settings_data.clone());
