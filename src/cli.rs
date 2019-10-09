@@ -128,13 +128,11 @@ pub fn init_project(settings_data: serde_json::value::Value) {
     );
     let project_dir = format!("{}/{}", env::current_dir().unwrap().display(), project_name);
 
-    pause("The installation will take long which is roughly about 15 minutes \u{1f422}.\nPress any key to continue and wait with \u{2615} or Ctrl + C to quit...".to_string());
-
     println!("Generating project_directory at {}...", project_dir.clone());
 
     match &platform_name[..] {
         "substrate" => {
-            substrate::init_substrate(settings_data, project_name)
+            substrate::init_substrate(project_dir, project_name)
             },
         _ => panic!("Not implemented yet")
         // TODO: Add platform command functions for other parchain projects
