@@ -72,30 +72,29 @@ pub fn init_substrate(path: String, project_name: String) {
         TRUCK
     );
     // Fetch packages
-    let project_name1 = project_name.clone();
-    let computation = thread::spawn(move || {
-        new_substrate_node(project_name1.clone());
-        new_substrate_frontend(project_name1.clone());
-        new_polkadot_js_app(project_name1);
-    });
-    computation.join().unwrap();
-
+    new_git_clone("Substrate node template",
+    "https://github.com/paritytech/substrate.git",
+    "v1.0", 
+    &format!("{}-node", &project_name)
+    );
+    new_git_clone("Substrate frontend template", 
+    "https://github.com/substrate-developer-hub/substrate-front-end-template.git",
+    "master",
+    &format!("{}-frontend", &project_name)
+    );
+    new_git_clone("Polkadot-js apps", 
+    "https://github.com/polkadot-js/apps.git",
+    "master",
+    &format!("{}-polkadotjs-apps", &project_name)
+    );
     
     let project_name2 = project_name.clone();
     println!(
-        "{} {}Linking dependencies...",
+        "{} {}Linking WASM dependencies...",
         style("[3/4]").bold().dim(),
         CLIP
     );
-
-
-    let deps = 1232;
-    let pb = ProgressBar::new(deps);
-    for _ in 0..deps {
-        pb.inc(1);
-        thread::sleep(Duration::from_millis(3));
-    }
-    pb.finish_and_clear();
+    
 
     println!(
         "{} {}Building fresh packages...",
@@ -109,10 +108,36 @@ pub fn init_substrate(path: String, project_name: String) {
     pb.enable_steady_tick(200);
     pb.set_style(ProgressStyle::default_spinner()
         .tick_chars("/|\\- ")
-        .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.dim.bold} cargo: {wide_msg}"),
+        .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.dim.bold} substrate-runtime: {wide_msg}"),
     );
-    pb.set_prefix(&format!("[{}/3]", 1));
-    pb.set_message("cargo: build substrate_runtime");
+    pb.set_prefix(&format!("[{}/4]", 1));
+    let temp0 = project_name.clone();
+    let path_temp0 = path.clone();
+    let _ = thread::spawn(move || {
+        let substrate_build_path = format!("{}/{}-node/Cargo.toml", path_temp0, temp0.clone());
+        
+        let mut p = build_substrate_runtime(temp0, path_temp0);
+        for line in BufReader::new(p.stderr.take().unwrap()).lines() {
+            let line = line.unwrap();
+            let stripped_line = line.trim();
+            if !stripped_line.is_empty() {
+                pb.set_message(stripped_line);
+            }
+            pb.tick();
+        }
+
+        p.wait().unwrap();
+
+        pb.finish_with_message("waiting...");
+    });
+
+    let pb = m.add(ProgressBar::new_spinner());
+    pb.enable_steady_tick(200);
+    pb.set_style(ProgressStyle::default_spinner()
+        .tick_chars("/|\\- ")
+        .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.dim.bold} substrate: {wide_msg}"),
+    );
+    pb.set_prefix(&format!("[{}/4]", 2));
     let temp0 = project_name.clone();
     let path_temp0 = path.clone();
     let _ = thread::spawn(move || {
@@ -120,17 +145,17 @@ pub fn init_substrate(path: String, project_name: String) {
         
         let mut p = build_substrate_node(temp0, path_temp0);
         for line in BufReader::new(p.stderr.take().unwrap()).lines() {
-        let line = line.unwrap();
-        let stripped_line = line.trim();
-        if !stripped_line.is_empty() {
-            pb.set_message(stripped_line);
+            let line = line.unwrap();
+            let stripped_line = line.trim();
+            if !stripped_line.is_empty() {
+                pb.set_message(stripped_line);
+            }
+            pb.tick();
         }
-        pb.tick();
-    }
 
-    p.wait().unwrap();
+        p.wait().unwrap();
 
-    pb.finish_with_message("waiting...");
+        pb.finish_with_message("waiting...");
     });
 
 
@@ -147,14 +172,14 @@ pub fn init_substrate(path: String, project_name: String) {
         let count = rng.gen_range(30, 80);
         let pb = m.add(ProgressBar::new(count));
         pb.set_style(sty.clone());
-        pb.set_prefix(&format!("[{}/3]", i + 1));
+        pb.set_prefix(&format!("[{}/4]", i + 2));
         let _ = thread::spawn(move || {
             let mut rng = rand::thread_rng();
             let pkg = PACKAGES[i];
             let cmd = COMMANDS[i];
             pb.set_message(&format!("{}: {}", pkg, cmd));
             match i {
-                0 => {
+                1 => {
                     let frontend_path = format!("{}/{}-frontend", path_temp0, temp0.clone());
                     let mut p = build_substrate_frontend(frontend_path);
                     for line in BufReader::new(p.stderr.take().unwrap()).lines() {
@@ -167,7 +192,7 @@ pub fn init_substrate(path: String, project_name: String) {
                     }
                     p.wait().unwrap();
                     },
-                1 => {
+                2 => {
                     let apps_path = format!("{}/{}-polkadotjs-apps", path_temp1, temp1.clone());
                     let mut p = build_substrate_frontend(apps_path);
                     for line in BufReader::new(p.stderr.take().unwrap()).lines() {
@@ -180,7 +205,7 @@ pub fn init_substrate(path: String, project_name: String) {
                     }
                     p.wait().unwrap();
                     },
-                _ => panic!("nothing other than 0,1"),
+                _ => panic!("nothing other than 1,2"),
             }
             
             pb.finish_with_message("waiting...");
@@ -193,28 +218,29 @@ pub fn init_substrate(path: String, project_name: String) {
     println!("{} Done in {}", SPARKLE, HumanDuration(started.elapsed()));
 }
 
-pub fn new_substrate_node(project_name: String) {
-    println!("Fetching substrate node...");
-    Command::new("git")
-        .args(&["clone", "https://github.com/paritytech/substrate.git", "--branch", "v1.0", &format!("{}-node", &project_name)])
-        .output()
-        .expect("Failed to clone substrate");
-}
 
-pub fn new_substrate_frontend(project_name: String) {
-    println!("Fetching substrate frontend template...");
-    Command::new("git")
-        .args(&["clone", "https://github.com/substrate-developer-hub/substrate-front-end-template.git", "--branch", "master", &format!("{}-frontend", &project_name)])
-        .output()
-        .expect("Failed to clone substrate");
-}
-
-pub fn new_polkadot_js_app(project_name: String) {
-    println!("Fetching polkadot.js apps...");
-    Command::new("git")
-        .args(&["clone", "https://github.com/polkadot-js/apps.git", "--branch", "master", &format!("{}-polkadotjs-apps", &project_name)])
-        .output()
-        .expect("Failed to process git command");
+pub fn new_git_clone(repo: &str, link: &str, branch: &str, directory: &str) {
+   let n = 10000;
+   println!("Fetching {}...", repo);
+   let pb = ProgressBar::new(n);
+   if let Some(v) = Some(10) {
+        pb.set_draw_delta(v);
+   }
+   let started = Instant::now();
+   let mut p = Command::new("git")
+        .args(&["clone", link, "--branch", branch, directory])
+        .stderr(process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    p.wait().unwrap();
+    pb.finish();
+    let finished = started.elapsed();
+    
+    println!(
+        "Fetched {} in {}",
+        repo,
+        HumanDuration(finished)
+    )
 }
 
 pub fn run_substrate(project_name: String, path: String) {
@@ -278,33 +304,29 @@ pub fn build_substrate_runtime(project_name: String, path: String) -> std::proce
     );
 
     // Build runtime WASM image
-    Command::new("bash")
+    return Command::new("bash")
         .arg(substrate_runtime_build_path)
+        .stderr(process::Stdio::piped())
         .spawn()
-        .unwrap()
+        .unwrap();
 }
 
 pub fn build_substrate_node(project_name: String, path: String) -> std::process::Child {
     let path_temp = path.clone();
     let temp = project_name.clone();
-    let computation = thread::spawn(move || {
-        let mut p = build_substrate_runtime(temp, path_temp);
-    });
-    
-    computation.join().unwrap();
-    
     let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
     
 
     // Build Substrate binary from runtime wasm image
-    Command::new("cargo")
+    return Command::new("cargo")
         .args(&[
             "build".to_string(),
             "--release".to_string(),
             format!("--manifest-path={}", substrate_build_path)
         ])
+        .stderr(process::Stdio::piped())
         .spawn()
-        .unwrap()
+        .unwrap();
 }
 
 pub fn build_substrate(project_name: String, path: String, target: String) {
