@@ -73,8 +73,8 @@ pub fn init_substrate(path: String, project_name: String) {
     );
     // Fetch packages
     new_git_clone("Substrate node template",
-    "https://github.com/paritytech/substrate.git",
-    "v1.0", 
+    "https://github.com/substrate-developer-hub/substrate-node-template.git",
+    "master", 
     &format!("{}-node", &project_name)
     );
     new_git_clone("Substrate frontend template", 
