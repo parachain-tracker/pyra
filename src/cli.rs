@@ -1,7 +1,7 @@
 use std::env;
 extern crate dirs;
 use dialoguer::{
-    theme::ColorfulTheme, theme::CustomPromptCharacterTheme, Confirmation, Input, Select,
+    theme::ColorfulTheme, theme::CustomPromptCharacterTheme, Confirmation, Input, Select, Checkboxes
 };
 use serde_json::json;
 use std::fs;
@@ -59,6 +59,29 @@ pub fn browse(prompt: &str, settings_data: serde_json::value::Value) -> String {
 
     result.to_string()
 }
+
+/*
+pub fn checklist(prompt: &str, settings_data: serde_json::value::Value) -> Vec<usize> {
+    let selections = list_projects(settings_data.clone());
+    if selections.len() == 0 {
+        println!("{}", format!("Project does not exist :( Add it using {} or cd till the project folder and type {}",
+     "`pyra add [projectPath]`".yellow(), 
+     "`pyra add`".yellow()).red().bold());
+        panic!("No project found");
+    }
+
+    let results = Checkboxes::with_theme(&ColorfulTheme::default())
+        .with_prompt(prompt)
+        .items(&selections[..])
+        .interact()
+        .unwrap();
+
+    if selections.is_empty() {
+        println!("You did not select anything :(");
+    } 
+    results
+}
+*/
 
 pub fn open_project(settings_data: serde_json::value::Value, project: Option<String>) {
     let open_prompt: &str = &prompt("Select project to open");

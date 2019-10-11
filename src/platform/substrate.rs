@@ -24,21 +24,9 @@ use console::{style, Emoji};
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 
 
-static PACKAGES: &'static [&'static str] = &[
-    "substrate-node-template",
-    "substrate-frontend-template",
-    "polkadot-js-apps",
-];
-
-static COMMANDS: &'static [&'static str] = &[
-    "cargo build",
-    "yarn",
-    "yarn",
-];
-
 static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍  ", "");
 static TRUCK: Emoji<'_, '_> = Emoji("🚚  ", "");
-static CLIP: Emoji<'_, '_> = Emoji("🔗  ", "");
+static GEAR: Emoji<'_, '_> = Emoji("⚙️  ", "");
 static PAPER: Emoji<'_, '_> = Emoji("📃  ", "");
 static SPARKLE: Emoji<'_, '_> = Emoji("✨ ", ":-)");
 
@@ -73,8 +61,8 @@ pub fn init_substrate(path: String, project_name: String) {
     );
     // Fetch packages
     new_git_clone("Substrate node template",
-    "https://github.com/paritytech/substrate.git",
-    "v1.0", 
+    "https://github.com/substrate-developer-hub/substrate-node-template.git",
+    "master", 
     &format!("{}-node", &project_name)
     );
     new_git_clone("Substrate frontend template", 
@@ -90,11 +78,12 @@ pub fn init_substrate(path: String, project_name: String) {
     
     let project_name2 = project_name.clone();
     println!(
-        "{} {}Linking WASM dependencies...",
+        "{} {}Setting WASM environment...",
         style("[3/4]").bold().dim(),
-        CLIP
+        GEAR
     );
     
+    initialize_wasm_environment(path.clone(), project_name.clone());
 
     println!(
         "{} {}Building fresh packages...",
@@ -108,36 +97,9 @@ pub fn init_substrate(path: String, project_name: String) {
     pb.enable_steady_tick(200);
     pb.set_style(ProgressStyle::default_spinner()
         .tick_chars("/|\\- ")
-        .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.dim.bold} substrate-runtime: {wide_msg}"),
-    );
-    pb.set_prefix(&format!("[{}/4]", 1));
-    let temp0 = project_name.clone();
-    let path_temp0 = path.clone();
-    let _ = thread::spawn(move || {
-        let substrate_build_path = format!("{}/{}-node/Cargo.toml", path_temp0, temp0.clone());
-        
-        let mut p = build_substrate_runtime(temp0, path_temp0);
-        for line in BufReader::new(p.stderr.take().unwrap()).lines() {
-            let line = line.unwrap();
-            let stripped_line = line.trim();
-            if !stripped_line.is_empty() {
-                pb.set_message(stripped_line);
-            }
-            pb.tick();
-        }
-
-        p.wait().unwrap();
-
-        pb.finish_with_message("waiting...");
-    });
-
-    let pb = m.add(ProgressBar::new_spinner());
-    pb.enable_steady_tick(200);
-    pb.set_style(ProgressStyle::default_spinner()
-        .tick_chars("/|\\- ")
         .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.dim.bold} substrate: {wide_msg}"),
     );
-    pb.set_prefix(&format!("[{}/4]", 2));
+    pb.set_prefix(&format!("[{}/3]", 1));
     let temp0 = project_name.clone();
     let path_temp0 = path.clone();
     let _ = thread::spawn(move || {
@@ -160,52 +122,33 @@ pub fn init_substrate(path: String, project_name: String) {
 
 
     let sty = ProgressStyle::default_spinner()
-            .tick_chars("/|\\- ")
-            .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.dim.bold} {wide_msg}");
+            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
+            .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.magenta} {wide_msg}");
     for i in 1..3 {
         let temp0 = project_name.clone();
         let temp1 = project_name.clone();
         let path_temp0 = path.clone();
         let path_temp1 = path.clone();
-        
-        let mut rng = rand::thread_rng();
-        let count = rng.gen_range(30, 80);
-        let pb = m.add(ProgressBar::new(count));
+        let pb = m.add(ProgressBar::new(100));
         pb.set_style(sty.clone());
-        pb.set_prefix(&format!("[{}/4]", i + 2));
+        pb.set_prefix(&format!("[{}/3]", i + 1));  
+                    
         let _ = thread::spawn(move || {
-            let mut rng = rand::thread_rng();
-            let pkg = PACKAGES[i];
-            let cmd = COMMANDS[i];
-            pb.set_message(&format!("{}: {}", pkg, cmd));
+            pb.set_message("yarn: build");
             match i {
                 1 => {
                     let frontend_path = format!("{}/{}-frontend", path_temp0, temp0.clone());
                     let mut p = build_substrate_frontend(frontend_path);
-                    for line in BufReader::new(p.stderr.take().unwrap()).lines() {
-                        let line = line.unwrap();
-                        let stripped_line = line.trim();
-                        if !stripped_line.is_empty() {
-                            pb.set_message(stripped_line);
-                        }
-                        pb.tick();
-                    }
+                    pb.enable_steady_tick(100);     
                     p.wait().unwrap();
                     },
                 2 => {
                     let apps_path = format!("{}/{}-polkadotjs-apps", path_temp1, temp1.clone());
                     let mut p = build_substrate_frontend(apps_path);
-                    for line in BufReader::new(p.stderr.take().unwrap()).lines() {
-                        let line = line.unwrap();
-                        let stripped_line = line.trim();
-                        if !stripped_line.is_empty() {
-                            pb.set_message(stripped_line);
-                        }
-                        pb.tick();
-                    }
+                    pb.enable_steady_tick(100);       
                     p.wait().unwrap();
                     },
-                _ => panic!("nothing other than 1,2"),
+                _ => panic!("nothing other than 1 or 2"),
             }
             
             pb.finish_with_message("waiting...");
@@ -237,15 +180,99 @@ pub fn new_git_clone(repo: &str, link: &str, branch: &str, directory: &str) {
     let finished = started.elapsed();
     
     println!(
-        "Fetched {} in {}",
+        "✅  Fetched {} in {}",
         repo,
         HumanDuration(finished)
     )
 }
 
+pub fn initialize_wasm_environment(path: String, project_name: String) {
+    let substrate_runtime_init_path = format!(
+        "{}/{}-node/scripts/init.sh",
+        path.clone(), project_name.clone());
+
+        
+
+    // Init wasm environment
+    let mut p = Command::new("bash")
+        .arg(substrate_runtime_init_path)
+        .stderr(process::Stdio::piped())
+        .spawn()
+        .unwrap();  
+    p.wait().unwrap();  
+    println!("✅  WASM environment is set");
+}
+
+pub fn build_substrate_runtime(project_name: String, path: String) -> std::process::Child {
+    let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
+    env::set_current_dir(substrate_runtime_build_path.clone());
+    return Command::new("cargo")
+        .args(&[
+            "build".to_string(),
+            format!("--manifest-path={}", substrate_runtime_build_path)
+        ])
+        .stderr(process::Stdio::piped())
+        .spawn()
+        .unwrap();
+}
+
+pub fn build_substrate_node(project_name: String, path: String) -> std::process::Child {
+    let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
+    
+    // Build Substrate binary from runtime wasm image
+    return Command::new("cargo")
+        .args(&[
+            "build".to_string(),
+            "--release".to_string(),
+            format!("--manifest-path={}", substrate_build_path)
+        ])
+        .stderr(process::Stdio::piped())
+        .spawn()
+        .unwrap();
+}
+
+pub fn build_substrate(project_name: String, path: String, target: String) {
+    if target=="node" {
+        let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
+    
+        // Build Substrate binary from runtime wasm image
+        Command::new("cargo")
+        .args(&[
+            "build".to_string(),
+            "--release".to_string(),
+            format!("--manifest-path={}", substrate_build_path)
+        ])
+        .spawn()
+        .unwrap();
+        }
+    if target=="runtime" {
+        let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
+        env::set_current_dir(substrate_runtime_build_path.clone());
+        Command::new("cargo")
+        .args(&[
+            "build".to_string(),
+            format!("--manifest-path={}", substrate_runtime_build_path)
+        ])
+        .spawn()
+        .unwrap();
+        let substrate_runtime_wasm_path = format!("{}/{}-node/target/debug/wbuild/node-template-runtime/node_template_runtime.compact.wasm", path.clone(), project_name.clone());
+        println!("{} runtime module is generated in {}".green(), PAPER, substrate_runtime_wasm_path);
+        }
+}
+
+pub fn build_substrate_frontend(path: String) -> std::process::Child {
+    env::set_current_dir(path);
+    return Command::new("yarn")
+        .stderr(process::Stdio::piped())
+        .spawn()
+        .unwrap();
+}
+
+
+// Post-initialization functions
 pub fn run_substrate(project_name: String, path: String) {
     let substrate_bin_path = format!(
-        "{}/{}-node/target/release/substrate",
+        "{}/{}-node/target/release/node-template",
         path,
         project_name.clone()
     );
@@ -269,9 +296,8 @@ pub fn run_substrate(project_name: String, path: String) {
 
 pub fn purge_substrate(project_name: String, path: String) {
     let substrate_bin_path = format!(
-        "{}/{}-node/target/release/{}-node",
+        "{}/{}-node/target/release/node-template",
         path,
-        project_name.clone(),
         project_name.clone()
     );
     if Confirmation::new()
@@ -290,54 +316,6 @@ pub fn purge_substrate(project_name: String, path: String) {
     }
 }
 
-pub fn build_substrate_runtime(project_name: String, path: String) -> std::process::Child {
-    env::set_current_dir(format!("{}/{}-node", path.clone(), project_name.clone()));
-    let substrate_runtime_init_path = format!(
-        "{}/{}-node/scripts/init.sh",
-        path.clone(),
-        project_name.clone()
-    );
-    let substrate_runtime_build_path = format!(
-        "{}/{}-node/scripts/build.sh",
-        path.clone(),
-        project_name.clone()
-    );
-
-    // Build runtime WASM image
-    return Command::new("bash")
-        .arg(substrate_runtime_build_path)
-        .stderr(process::Stdio::piped())
-        .spawn()
-        .unwrap();
-}
-
-pub fn build_substrate_node(project_name: String, path: String) -> std::process::Child {
-    let path_temp = path.clone();
-    let temp = project_name.clone();
-    let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
-    
-
-    // Build Substrate binary from runtime wasm image
-    return Command::new("cargo")
-        .args(&[
-            "build".to_string(),
-            "--release".to_string(),
-            format!("--manifest-path={}", substrate_build_path)
-        ])
-        .stderr(process::Stdio::piped())
-        .spawn()
-        .unwrap();
-}
-
-pub fn build_substrate(project_name: String, path: String, target: String) {
-    if target=="node" {
-        let mut p = build_substrate_node(project_name.clone(), path.clone());
-        }
-    if target=="runtime" {
-        let mut p = build_substrate_runtime(project_name, path);
-        }
-}
-
 pub fn run_substrate_ui(settings_data: serde_json::value::Value, path: String, project_name: String) {
     
     Command::new("yarn")
@@ -351,10 +329,4 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value, path: String, p
     }  
 }
 
-pub fn build_substrate_frontend(path: String) -> std::process::Child {
-    env::set_current_dir(path);
-    Command::new("yarn")
-        .stderr(process::Stdio::piped())
-        .spawn()
-        .unwrap()
-}
+
