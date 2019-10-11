@@ -328,5 +328,3 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value, path: String, p
         Err(why) => panic!("Failed to open webbrowser: {}", why)
     }  
 }
-
-
