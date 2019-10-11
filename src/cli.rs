@@ -26,7 +26,7 @@ struct Project {
     editor: String,
 }
 
-static PLATFORMS: [&'static str; 2] = ["substrate", "cosmos"];
+static PLATFORMS: [&'static str; 2] = ["substrate"];
 
 pub fn list_projects(settings_data: serde_json::value::Value) -> Vec<String> {
     let mut selections = vec![];
@@ -60,7 +60,7 @@ pub fn browse(prompt: &str, settings_data: serde_json::value::Value) -> String {
     result.to_string()
 }
 
-/*
+
 pub fn checklist(prompt: &str, settings_data: serde_json::value::Value) -> Vec<usize> {
     let selections = list_projects(settings_data.clone());
     if selections.len() == 0 {
@@ -69,19 +69,24 @@ pub fn checklist(prompt: &str, settings_data: serde_json::value::Value) -> Vec<u
      "`pyra add`".yellow()).red().bold());
         panic!("No project found");
     }
+    let mut selections_ptr: Vec<&str> = [].to_vec();
+    for i in 0..selections.len() {
+        selections_ptr.push(&selections[i]);
+    } 
 
     let results = Checkboxes::with_theme(&ColorfulTheme::default())
-        .with_prompt(prompt)
-        .items(&selections[..])
+        .with_prompt(prompt.clone())
+        .items(&selections_ptr[..])
         .interact()
         .unwrap();
 
-    if selections.is_empty() {
+    if results.is_empty() {
         println!("You did not select anything :(");
+        checklist(prompt.clone(), settings_data);
     } 
     results
 }
-*/
+
 
 pub fn open_project(settings_data: serde_json::value::Value, project: Option<String>) {
     let open_prompt: &str = &prompt("Select project to open");
@@ -347,6 +352,8 @@ pub fn remove_project(settings_data: serde_json::value::Value) {
     let mut next_settings = settings_data.clone();
 
     let remove_prompt: &str = &prompt("Select project to remove");
+    let results = checklist(remove_prompt.clone(), settings_data.clone());
+    println!("{:?}", results);
     let result = browse(remove_prompt, settings_data.clone());
     let path = find_project_path(result.clone().to_string(), settings_data.clone());
 
@@ -419,21 +426,23 @@ pub fn seteditor_project_json(
 
 pub fn help() {
     print!(
-        "\nUsage: sup <command>
+        "\nUsage: pyra <command>
 
 Options:
   -V, --version                output the version number
   -h, --help                   output usage information
+  -t, --target                 component to compile
+  -i, -ui                      user interface to open 
 
 Commands:
   init                         Initialize Substrate dev environment 
-  open|o                       Open one of your saved projects
-  add|save                     Save current directory as a project
-  remove                       Remove the project
-  seteditor                    Set text editor to use
+  open                         Open one of your saved projects
+  add                          Save current directory as a project
+  remove                       Remove the project in the registry and project files
+  seteditor                    Set text editor to use for a project
   run                          Run built Substrate node
-  deploy                       Deploy network in local/cloud environment
-  interact                     Open Substrate ui in the doc
+  deploy                       Deploy Substrate nodes in local/cloud environment
+  interact                     Open Substrate uis in the doc
   publish                      Publish in parachaintracker\n"
     )
 }
