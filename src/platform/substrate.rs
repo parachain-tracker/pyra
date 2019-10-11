@@ -256,7 +256,7 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
         .spawn()
         .unwrap();
         let substrate_runtime_wasm_path = format!("{}/{}-node/target/debug/wbuild/node-template-runtime/node_template_runtime.compact.wasm", path.clone(), project_name.clone());
-        println!("{} runtime module is generated in {}".green(), PAPER, substrate_runtime_wasm_path);
+        println!("{}", format!("{} runtime module is generated in {}", PAPER, substrate_runtime_wasm_path).green());
         }
 }
 
