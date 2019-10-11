@@ -22,6 +22,7 @@ struct Cli {
 }
 
 fn main() {
+    create_stdios();
     let settings_dir: String = format!(
         "{}/.pyra/settings.json",
         dirs::home_dir().unwrap().display()
@@ -96,4 +97,22 @@ pub fn reg_for_sigs() {
 fn on_sigint() {
     warn!("SIGINT caught - exiting");
     std::process::exit(128 + signal_hook::SIGINT);
+}
+
+#[cfg(target_os = "linux")]
+unsafe fn create_stdios(child: &Child) -> (Stdio, Stdio) {
+    use std::os::unix::io::{AsRawFd, FromRawFd};
+    let stdout = Stdio::from_raw_fd(child.stdout.as_ref().map(AsRawFd::as_raw_fd).unwrap());
+    let stderr = Stdio::from_raw_fd(child.stderr.as_ref().map(AsRawFd::as_raw_fd).unwrap());
+
+    (stdout, stderr)
+}
+
+#[cfg(target_os = "windows")]
+unsafe fn create_stdios(child: &Child) -> (Stdio, Stdio) {
+    use std::os::windows::io::{AsRawHandle, FromRawHandle};
+    let stdout = Stdio::from_raw_handle(child.stdout.as_ref().map(AsRawHandle::as_raw_handle).unwrap());
+    let stderr = Stdio::from_raw_handle(child.stderr.as_ref().map(AsRawHandle::as_raw_handle).unwrap());
+
+    (stdout, stderr)
 }
