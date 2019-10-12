@@ -5,12 +5,18 @@ use rand::Rng;
 
 use std::env;
 use std::fs;
+
+use std::process;
 use std::process::Command;
+#[cfg(target_os = "windows")]
+use std::os::windows::process;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::Command;
 use std::thread;
 use std::time::{Duration, Instant};
 use std::cmp::min;
 use std::io::{BufRead, BufReader};
-use std::process;
+
 
 use dialoguer::{
     Confirmation
@@ -61,8 +67,8 @@ pub fn init_substrate(path: String, project_name: String) {
     );
     // Fetch packages
     new_git_clone("Substrate node template",
-    "https://github.com/substrate-developer-hub/substrate-node-template.git",
-    "master", 
+    "https://github.com/hskang9/haski.git",
+    "patch-1", 
     &format!("{}-node", &project_name)
     );
     new_git_clone("Substrate frontend template", 
@@ -99,7 +105,7 @@ pub fn init_substrate(path: String, project_name: String) {
         .tick_chars("/|\\- ")
         .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.dim.bold} substrate: {wide_msg}"),
     );
-    pb.set_prefix(&format!("[{}/3]", 1));
+    pb.set_prefix(&format!("[{}/?]", 1));
     let temp0 = project_name.clone();
     let path_temp0 = path.clone();
     let _ = thread::spawn(move || {
@@ -131,21 +137,21 @@ pub fn init_substrate(path: String, project_name: String) {
         let path_temp1 = path.clone();
         let pb = m.add(ProgressBar::new(100));
         pb.set_style(sty.clone());
-        pb.set_prefix(&format!("[{}/3]", i + 1));  
+        pb.set_prefix(&format!("[{}/?]", i + 1));  
                     
         let _ = thread::spawn(move || {
-            pb.set_message("yarn: build");
+            pb.enable_steady_tick(100);  
             match i {
                 1 => {
+                    pb.set_message("substrate-frontend-template: yarn");
                     let frontend_path = format!("{}/{}-frontend", path_temp0, temp0.clone());
-                    let mut p = build_substrate_frontend(frontend_path);
-                    pb.enable_steady_tick(100);     
+                    let mut p = build_substrate_frontend(frontend_path);   
                     p.wait().unwrap();
                     },
                 2 => {
+                    pb.set_message("polkadot-js-apps: yarn");
                     let apps_path = format!("{}/{}-polkadotjs-apps", path_temp1, temp1.clone());
-                    let mut p = build_substrate_frontend(apps_path);
-                    pb.enable_steady_tick(100);       
+                    let mut p = build_substrate_frontend(apps_path);       
                     p.wait().unwrap();
                     },
                 _ => panic!("nothing other than 1 or 2"),
@@ -173,9 +179,7 @@ pub fn new_git_clone(repo: &str, link: &str, branch: &str, directory: &str) {
    let n = 10000;
    println!("Fetching {}...", repo);
    let pb = ProgressBar::new(n);
-   if let Some(v) = Some(10) {
-        pb.set_draw_delta(v);
-   }
+   
    let started = Instant::now();
    
    /* Check network connection
@@ -189,8 +193,15 @@ pub fn new_git_clone(repo: &str, link: &str, branch: &str, directory: &str) {
         .stderr(process::Stdio::piped())
         .spawn()
         .unwrap();
-    p.wait().unwrap();
+
+   for _ in 0..n {
+       pb.inc(1);
+       if p.wait().unwrap().success() {
+           break
+       }
+    }
     pb.finish();
+
     let finished = started.elapsed();
     
     println!(
@@ -223,6 +234,7 @@ pub fn build_substrate_runtime(project_name: String, path: String) -> std::proce
     return Command::new("cargo")
         .args(&[
             "build".to_string(),
+            "--release".to_string(),
             format!("--manifest-path={}", substrate_runtime_build_path)
         ])
         .stderr(process::Stdio::piped())
@@ -247,36 +259,53 @@ pub fn build_substrate_node(project_name: String, path: String) -> std::process:
 
 pub fn build_substrate(project_name: String, path: String, target: String) {
     if target=="node" {
-        let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
-    
-        // Build Substrate binary from runtime wasm image
-        Command::new("cargo")
-        .args(&[
-            "build".to_string(),
-            "--release".to_string(),
-            format!("--manifest-path={}", substrate_build_path)
-        ])
-        .spawn()
-        .unwrap();
+        if Confirmation::new()
+                .with_text("\u{26A0} The previous binary will be lost regardless of an error and the build time is estimated to be 20-30 minutes. Are you sure that all codes have been checked?")
+                .interact()
+                .unwrap()
+        {
+            let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
+            reg_for_sigs();
+            // Build Substrate binary
+            let p = thread::spawn(move || {
+                Command::new("cargo")
+                    .args(&[
+                    "build".to_string(),
+                    "--release".to_string(),
+                    format!("--manifest-path={}", substrate_build_path)
+                ])
+                .spawn()
+                .unwrap();
+            });
+            p.join().unwrap();
+        } else {
+            println!("It's okay, take your time :)");
+            return;
         }
+    }
     if target=="runtime" {
         let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
         env::set_current_dir(substrate_runtime_build_path.clone());
-        Command::new("cargo")
-        .args(&[
-            "build".to_string(),
-            format!("--manifest-path={}", substrate_runtime_build_path)
-        ])
-        .spawn()
-        .unwrap();
-        let substrate_runtime_wasm_path = format!("{}/{}-node/target/debug/wbuild/node-template-runtime/node_template_runtime.compact.wasm", path.clone(), project_name.clone());
-        println!("{}", format!("{} runtime wasm has been generated in {}", PAPER, substrate_runtime_wasm_path).green());
-        }
+        reg_for_sigs();
+        let substrate_runtime_wasm_path = format!("{}/{}-node/target/debug/wbuild/node-template-runtime/", path.clone(), project_name.clone());
+        println!("{}", format!("{} Runtime WASM file will be generated in {}", PAPER, substrate_runtime_wasm_path).green());
+        let p = thread::spawn(move || {
+            Command::new("cargo")
+            .args(&[
+                "build".to_string(),
+                "--release".to_string(),
+                format!("--manifest-path={}", substrate_runtime_build_path)
+            ])
+            .spawn()
+            .unwrap();
+        });
+        p.join().unwrap();
+    }
 }
 
 pub fn build_substrate_frontend(path: String) -> std::process::Child {
-    env::set_current_dir(path);
     return Command::new("yarn")
+        .args(&["--cwd", &path])
         .stderr(process::Stdio::piped())
         .spawn()
         .unwrap();
@@ -286,11 +315,12 @@ pub fn build_substrate_frontend(path: String) -> std::process::Child {
 // Post-initialization functions
 pub fn run_substrate(project_name: String, path: String) {
     let substrate_bin_path = format!(
-        "{}/{}-node/target/release/node-template",
+        "{}/{}-node/target/debug/node-template",
         path,
         project_name.clone()
     );
     println!("{:?}", substrate_bin_path);
+    reg_for_sigs();
     let command = Command::new(&substrate_bin_path)
         .arg("--dev")
         .spawn()
@@ -299,7 +329,7 @@ pub fn run_substrate(project_name: String, path: String) {
     println!(
         "{}",
         format!(
-            "Substrate daemon running at pid {}. kill the process with `kill {}` command",
+            "Substrate daemon running at pid {}. kill the daemon with `kill {}` command",
             pid, pid
         )
         .magenta()
@@ -341,4 +371,24 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value, path: String, p
         Ok(_) => (),
         Err(why) => panic!("Failed to open webbrowser: {}", why)
     }  
+}
+
+
+// Listen to Ctrl-C
+pub fn reg_for_sigs() {
+    unsafe { signal_hook::register(signal_hook::SIGINT, || on_sigint()) }
+        .and_then(|_| {
+            debug!("Registered for SIGINT");
+            Ok(())
+        })
+        .or_else(|e| {
+            warn!("Failed to register for SIGINT {:?}", e);
+            Err(e)
+        })
+        .ok();
+}
+
+fn on_sigint() {
+    warn!("SIGINT caught - exiting");
+    std::process::exit(128 + signal_hook::SIGINT);
 }

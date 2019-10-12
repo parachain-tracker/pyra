@@ -14,10 +14,10 @@ struct Cli {
 
     project: Option<String>,
 
-    #[structopt(short = "i", long = "ui", default_value = "gav")]
+    #[structopt(short = "i", long = "ui", default_value = "template")]
     ui: String,
 
-    #[structopt(short = "t", long = "target", default_value = "whole")]
+    #[structopt(short = "t", long = "target", default_value = "runtime")]
     target: String,
 }
 

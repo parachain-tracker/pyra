@@ -43,8 +43,8 @@ pub fn list_projects(settings_data: serde_json::value::Value) -> Vec<String> {
 pub fn browse(prompt: &str, settings_data: serde_json::value::Value) -> String {
     let selections = list_projects(settings_data.clone());
     if selections.len() == 0 {
-        println!("{}", format!("Project does not exist :( Add it using {} or cd till the project folder and type {}",
-     "`pyra add [projectPath]`".yellow(), 
+        println!("{}", format!("Project does not exist :( Add it using {} or cd till current working project and type {}",
+     "`pyra init`".yellow(), 
      "`pyra add`".yellow()).red().bold());
         panic!("No project found");
     }
@@ -258,17 +258,6 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value, ui: Option<Stri
 // TODO: run Polkascan app
 pub fn run_scanner(settings_data: serde_json::value::Value) {}
 
-pub fn pause(note: String) {
-    let mut stdin = io::stdin();
-    let mut stdout = io::stdout();
-    // We want the cursor to stay at the end of the line, so we print without a newline and flush manually.
-    write!(stdout, "{}", note).unwrap();
-    stdout.flush().unwrap();
-
-    // Read a single byte and discard
-    let _ = stdin.read(&mut [0u8]).unwrap();
-}
-
 pub fn add_project(
     settings_data: serde_json::value::Value,
     project: Option<String>,
@@ -350,23 +339,26 @@ pub fn save_settings(settings_data: serde_json::value::Value) {
 
 pub fn remove_project(settings_data: serde_json::value::Value) {
     let mut next_settings = settings_data.clone();
-
-    let remove_prompt: &str = &prompt("Select project to remove");
+    let remove_prompt: &str = &prompt("Select projects to remove. Press SPACE to check the projects");
     let results = checklist(remove_prompt.clone(), settings_data.clone());
-    println!("{:?}", results);
-    let result = browse(remove_prompt, settings_data.clone());
-    let path = find_project_path(result.clone().to_string(), settings_data.clone());
-
-    // Remove the project in json file
-    next_settings = delete_project_json(next_settings, result.to_string());
-    Command::new("rm")
-        .args(&["-rf", &path])
-        .spawn()
-        .expect("Failed to remove project directory");
-    println!(
-        "{}",
-        format!("Project {} has been successfully removed", result.cyan().bold()).green()
-    );
+    let selections = list_projects(settings_data.clone());
+    
+    for i in results {
+        let result = &selections[i];
+        let path = find_project_path(result.clone().to_string(), settings_data.clone());
+        // Remove the project in json file
+        next_settings = delete_project_json(next_settings, result.to_string());
+        // Remove it in the disk
+        Command::new("rm")
+            .args(&["-rf", &path])
+            .spawn()
+            .expect("Failed to remove project directory");
+        println!(
+            "{}",
+            format!("Project {} has been successfully removed", result.cyan().bold()).green()
+        );
+    }
+    // Save the next settings
     save_settings(next_settings);
 }
 
@@ -433,6 +425,7 @@ Options:
   -h, --help                   output usage information
   -t, --target                 component to compile
   -i, -ui                      user interface to open 
+  --dev                        run in dev mode
 
 Commands:
   init                         Initialize Substrate dev environment 
