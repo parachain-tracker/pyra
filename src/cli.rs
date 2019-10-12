@@ -26,7 +26,7 @@ struct Project {
     editor: String,
 }
 
-static PLATFORMS: [&'static str; 2] = ["substrate"];
+static PLATFORMS: [&'static str; 1] = ["substrate"];
 
 pub fn list_projects(settings_data: serde_json::value::Value) -> Vec<String> {
     let mut selections = vec![];

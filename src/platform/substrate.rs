@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 use std::cmp::min;
 use std::io::{BufRead, BufReader};
 use std::process;
+use std::time::Duration;
 
 use dialoguer::{
     Confirmation
@@ -161,16 +162,30 @@ pub fn init_substrate(path: String, project_name: String) {
     println!("{} Done in {}", SPARKLE, HumanDuration(started.elapsed()));
 }
 
+/* TODO: Ask online crate maintainer to update to working version
+pub fn check_network() -> bool {
+    // with timeout
+    let timeout = Duration::new(6, 0);
+    assert_eq!(online(Some(timeout)), Ok(true));
+}
+*/
 
 pub fn new_git_clone(repo: &str, link: &str, branch: &str, directory: &str) {
    let n = 10000;
-   println!("Fetching {}...", repo);
+   println!("Fetching {}...", repo)
    let pb = ProgressBar::new(n);
    if let Some(v) = Some(10) {
         pb.set_draw_delta(v);
    }
    let started = Instant::now();
-   let mut p = Command::new("git")
+   
+   /* Check network connection
+   if !check_network() {
+       panic!("Invalid connection: network not connected");
+   }
+   */
+
+   let mut p = match Command::new("git")
         .args(&["clone", link, "--branch", branch, directory])
         .stderr(process::Stdio::piped())
         .spawn()
