@@ -171,7 +171,7 @@ pub fn check_network() -> bool {
 
 pub fn new_git_clone(repo: &str, link: &str, branch: &str, directory: &str) {
    let n = 10000;
-   println!("Fetching {}...", repo)
+   println!("Fetching {}...", repo);
    let pb = ProgressBar::new(n);
    if let Some(v) = Some(10) {
         pb.set_draw_delta(v);
