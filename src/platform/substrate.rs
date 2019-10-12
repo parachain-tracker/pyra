@@ -11,7 +11,6 @@ use std::time::{Duration, Instant};
 use std::cmp::min;
 use std::io::{BufRead, BufReader};
 use std::process;
-use std::time::Duration;
 
 use dialoguer::{
     Confirmation
@@ -185,7 +184,7 @@ pub fn new_git_clone(repo: &str, link: &str, branch: &str, directory: &str) {
    }
    */
 
-   let mut p = match Command::new("git")
+   let mut p = Command::new("git")
         .args(&["clone", link, "--branch", branch, directory])
         .stderr(process::Stdio::piped())
         .spawn()
