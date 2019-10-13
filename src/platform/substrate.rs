@@ -266,9 +266,7 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
                 .unwrap()
         {
             let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
-            reg_for_sigs();
-            // Build Substrate binary
-            let p = thread::spawn(move || {
+            ctrlc::set_handler(move || {
                 Command::new("cargo")
                     .args(&[
                     "build".to_string(),
@@ -277,8 +275,7 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
                 ])
                 .spawn()
                 .unwrap();
-            });
-            p.join().unwrap();
+            }).expect("Error setting Ctrl-C handler");
         } else {
             println!("It's okay, take your time :)");
             return;
@@ -287,10 +284,7 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
     if target=="runtime" {
         let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
         env::set_current_dir(substrate_runtime_build_path.clone());
-        reg_for_sigs();
-        let substrate_runtime_wasm_path = format!("{}/{}-node/target/debug/wbuild/node-template-runtime/", path.clone(), project_name.clone());
-        println!("{}", format!("{} Runtime WASM file will be generated in {}", PAPER, substrate_runtime_wasm_path).green());
-        let p = thread::spawn(move || {
+        ctrlc::set_handler(move || {
             Command::new("cargo")
             .args(&[
                 "build".to_string(),
@@ -299,8 +293,9 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
             ])
             .spawn()
             .unwrap();
-        });
-        p.join().unwrap();
+        }).expect("Error setting Ctrl-C handler");
+        let substrate_runtime_wasm_path = format!("{}/{}-node/target/debug/wbuild/node-template-runtime/", path.clone(), project_name.clone());
+        println!("{}", format!("{} Runtime WASM file will be generated in {}", PAPER, substrate_runtime_wasm_path).green());      
     }
 }
 
@@ -321,7 +316,6 @@ pub fn run_substrate(project_name: String, path: String) {
         project_name.clone()
     );
     println!("{:?}", substrate_bin_path);
-    reg_for_sigs();
     let command = Command::new(&substrate_bin_path)
         .arg("--dev")
         .spawn()
@@ -374,22 +368,3 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value, path: String, p
     }  
 }
 
-
-// Listen to Ctrl-C
-pub fn reg_for_sigs() {
-    unsafe { signal_hook::register(signal_hook::SIGINT, || on_sigint()) }
-        .and_then(|_| {
-            debug!("Registered for SIGINT");
-            Ok(())
-        })
-        .or_else(|e| {
-            warn!("Failed to register for SIGINT {:?}", e);
-            Err(e)
-        })
-        .ok();
-}
-
-fn on_sigint() {
-    warn!("SIGINT caught - exiting");
-    std::process::exit(128 + signal_hook::SIGINT);
-}

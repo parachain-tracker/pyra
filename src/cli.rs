@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use webbrowser;
 use crate::platform::substrate;
 
-extern crate signal_hook;
+extern crate ctrlc;
 use log::{debug, warn};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -68,7 +68,6 @@ pub fn browse(prompt: &str, settings_data: serde_json::value::Value) -> String {
 
     result.to_string()
 }
-
 
 pub fn checklist(prompt: &str, settings_data: serde_json::value::Value) -> Vec<usize> {
     let selections = list_projects(settings_data.clone());
@@ -230,12 +229,14 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value, ui: Option<Stri
                 Ok(_) => (),
                 Err(why) => panic!("Failed to set current dir: {}", why),
             }
-            reg_for_sigs();
-            Command::new("yarn")
+            
+            ctrlc::set_handler(move || {
+                Command::new("yarn")
                 .args(&["run", "dev"])
                 .spawn()
                 .expect("Failed to run substrate ui");
-
+            }).expect("Error setting Ctrl-C handler");
+            
             match webbrowser::open("http://localhost:8000") {
                 Ok(_) => (),
                 Err(why) => panic!("Failed to open webbrowser: {}", why),
@@ -246,15 +247,17 @@ pub fn run_substrate_ui(settings_data: serde_json::value::Value, ui: Option<Stri
                 Ok(_) => (),
                 Err(why) => panic!("Failed to set current dir: {}", why),
             }
-            reg_for_sigs();
-            Command::new("yarn")
+            
+            ctrlc::set_handler(move || {
+                Command::new("yarn")
                 .spawn()
                 .expect("Failed to run yarn");
-            Command::new("yarn")
-                .args(&["run", "start"])
-                .spawn()
-                .expect("Failed to start yarn app");
-
+                Command::new("yarn")
+                    .args(&["run", "start"])
+                    .spawn()
+                    .expect("Failed to start yarn app");
+            }).expect("Error setting Ctrl-C handler");
+            
             match webbrowser::open("http://localhost:3000") {
                 Ok(_) => (),
                 Err(why) => panic!("Failed to open webbrowser: {}", why),
@@ -504,25 +507,6 @@ pub fn path_exists(path: String) -> bool {
         Ok(_some) => true,
         Err(_) => false,
     }
-}
-
-// Listen to Ctrl-C
-pub fn reg_for_sigs() {
-    unsafe { signal_hook::register(signal_hook::SIGINT, || on_sigint()) }
-        .and_then(|_| {
-            debug!("Registered for SIGINT");
-            Ok(())
-        })
-        .or_else(|e| {
-            warn!("Failed to register for SIGINT {:?}", e);
-            Err(e)
-        })
-        .ok();
-}
-
-fn on_sigint() {
-    warn!("SIGINT caught - exiting");
-    std::process::exit(128 + signal_hook::SIGINT);
 }
 
 fn prompt(question: &str) -> String {
