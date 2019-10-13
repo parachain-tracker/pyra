@@ -8,7 +8,16 @@ use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
+#[cfg(target_os = "windows")]
+std::os::windows::io
+#[cfg(target_os = "windows")]
+std::os::windows::io::prelude::*;
+use std::process;
 use std::process::Command;
+#[cfg(target_os = "windows")]
+use std::os::windows::process;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::Command;
 extern crate colored;
 use colored::*;
 use serde::{Deserialize, Serialize};
