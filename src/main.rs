@@ -76,25 +76,3 @@ fn main() {
     }
 }
 
-// Listen to Ctrl-C
-extern crate signal_hook;
-use log::{warn, debug};
-
-pub fn reg_for_sigs() {
-    unsafe { signal_hook::register(signal_hook::SIGINT, || on_sigint()) }
-        .and_then(|_| {
-                debug!("Registered for SIGINT");
-                Ok(())
-        })
-        .or_else(|e| {
-            warn!("Failed to register for SIGINT {:?}", e);
-            Err(e)
-        })
-        .ok();
-}
-
-fn on_sigint() {
-    warn!("SIGINT caught - exiting");
-    std::process::exit(128 + signal_hook::SIGINT);
-}
-
