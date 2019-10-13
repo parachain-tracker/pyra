@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 #[cfg(target_os = "windows")]
-std::os::windows::io
+std::os::windows::io;
 #[cfg(target_os = "windows")]
 std::os::windows::io::prelude::*;
 use std::process;
