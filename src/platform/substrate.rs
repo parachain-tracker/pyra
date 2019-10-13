@@ -7,6 +7,7 @@ use std::env;
 use std::fs;
 
 use std::process;
+#[cfg(target_os = "linux")]
 use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process;
