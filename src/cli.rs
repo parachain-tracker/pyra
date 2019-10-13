@@ -9,9 +9,9 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 #[cfg(target_os = "windows")]
-std::os::windows::io;
+use std::os::windows::io;
 #[cfg(target_os = "windows")]
-std::os::windows::io::prelude::*;
+use std::os::windows::io::prelude::*;
 use std::process;
 use std::process::Command;
 #[cfg(target_os = "windows")]
