@@ -5,14 +5,8 @@ use rand::Rng;
 
 use std::env;
 use std::fs;
-
-
 use std::process;
 use std::process::Command;
-#[cfg(target_os = "windows")]
-use std::os::windows::process;
-#[cfg(target_os = "windows")]
-use std::os::windows::process::Command;
 use std::thread;
 use std::time::{Duration, Instant};
 use std::cmp::min;
