@@ -56,7 +56,6 @@ fn main() {
     };
 
     let settings_data = serde_json::from_str(&file_string).unwrap();
-    reg_for_sigs();
     let args = Cli::from_args();
     match args.pattern {
         None => cli::open_project(settings_data, args.project),
