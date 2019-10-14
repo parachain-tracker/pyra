@@ -293,6 +293,43 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
     }
 }
 
+pub fn test_substrate(project_name: String, path: String, target: String) {
+    if target=="node" {
+        if Confirmation::new()
+                .with_text("\u{26A0} The previous binary will be lost regardless of an error and the build time is estimated to be 20-30 minutes. Are you sure that all codes have been checked?")
+                .interact()
+                .unwrap()
+        {
+            let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
+            ctrlc::set_handler(move || {
+                Command::new("cargo")
+                    .args(&[
+                    "test".to_string(),
+                    format!("--manifest-path={}", substrate_build_path)
+                ])
+                .spawn()
+                .unwrap();
+            }).expect("Error setting Ctrl-C handler");
+        } else {
+            println!("It's okay, take your time :)");
+            return;
+        }
+    }
+    if target=="runtime" {
+        let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
+        env::set_current_dir(substrate_runtime_build_path.clone());
+        ctrlc::set_handler(move || {
+            Command::new("cargo")
+            .args(&[
+                "test".to_string(),
+                format!("--manifest-path={}", substrate_runtime_build_path)
+            ])
+            .spawn()
+            .unwrap();
+        }).expect("Error setting Ctrl-C handler");              
+    }
+}
+
 pub fn build_substrate_frontend(path: String) -> std::process::Child {
     return Command::new("yarn")
         .args(&["--cwd", &path])

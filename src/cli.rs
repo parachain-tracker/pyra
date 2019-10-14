@@ -136,10 +136,13 @@ pub fn init_project(settings_data: serde_json::value::Value) {
         .interact()
         .unwrap();
     let node_name = format!("{}-node", project_name.clone());
+    
+    /* TODO: leave author for making package.json
     let author: String = Input::with_theme(&theme)
         .with_prompt(&prompt(&bold("The Author")))
         .interact()
         .unwrap();
+    "*/
     let prompt = prompt("Blockchain platform to develop");
 
     let selection = Select::with_theme(&ColorfulTheme::default())
@@ -204,8 +207,21 @@ pub fn build_project(settings_data: serde_json::value::Value, target: String) {
         _ => panic!("Not implemented yet")
         // TODO: Add platform command functions for other parchain projects
     }
-  
 }
+
+pub fn test_project(settings_data: serde_json::value::Value, target: String) {
+    let substrate_prompt = &prompt("Which Substrate node would you like to test?");
+    let project_name = browse(substrate_prompt, settings_data.clone());
+    let path = find_project_path(project_name.clone(), settings_data.clone());
+    let platform_name = find_project_platform(project_name.clone(), settings_data);
+    
+    match &platform_name[..] {
+        "substrate" => substrate::test_substrate(project_name, path, target),
+        _ => panic!("Not implemented yet")
+        // TODO: Add platform command functions for other parchain projects
+    }
+}
+
 
 pub fn run_substrate_ui(settings_data: serde_json::value::Value, ui: Option<String>) {
     let substrate_prompt = &prompt("Which Substrate node would you like to interact?");
@@ -434,13 +450,13 @@ Options:
 Commands:
   init                         Initialize Substrate dev environment 
   open                         Open one of your saved projects
-  add                          Save current directory as a project
+  add | save                   Add/Save current directory as a project
   remove                       Remove the project in the registry and project files
   seteditor                    Set text editor to use for a project
-  run                          Run built Substrate node
+  run                          Run built Substrate node binary
   deploy                       Deploy Substrate nodes in local/cloud environment
-  interact                     Open Substrate uis in the doc
-  publish                      Publish in parachaintracker\n"
+  interact                     Open Substrate UI to interact with the node
+  publish                      Publish runtime or node in hosting website\n"
     )
 }
 
