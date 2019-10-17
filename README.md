@@ -69,7 +69,7 @@ the-name-of-your-project
 └── the-name-of-your-project-polkadotjs-apps # polkadot-js/apps
 ```
 
-#### the-name-of-your-project-frontend
+#### frontend
 
 The frontend is from the [substrate-frontend-template](https://github.com/substrate-developer-hub/substrate-front-end-template).
 
@@ -88,9 +88,9 @@ the-name-of-your-project-frontend
 └── yarn.lock
 ```
 
-#### the-name-of-your-project-node
+#### node
 
-The frontend is from the [substrate-node-template](https://github.com/substrate-developer-hub/substrate-node-template).
+The node is from the [substrate-node-template](https://github.com/substrate-developer-hub/substrate-node-template).
 
 Navigate to the folder inside the project folder with
 
@@ -110,9 +110,9 @@ the-name-of-your-project-node
 └── target # Built with init command
 ```
 
-#### the-name-of-your-project-polkadotjs-apps
+#### polkadotjs-apps
 
-The frontend is from the [polkadot-js/apps](https://github.com/polkadot-js/apps).
+The polkadotjs-apps is from the [polkadot-js/apps](https://github.com/polkadot-js/apps).
 
 Navigate to the folder inside the project folder with
 

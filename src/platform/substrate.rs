@@ -54,17 +54,17 @@ pub fn init_substrate(path: String, project_name: String) {
     new_git_clone("Substrate node template",
     "https://github.com/hskang9/haski.git",
     "patch-1", 
-    &format!("{}-node", &project_name)
+    &format!("node")
     );
     new_git_clone("Substrate frontend template", 
     "https://github.com/substrate-developer-hub/substrate-front-end-template.git",
     "master",
-    &format!("{}-frontend", &project_name)
+    &format!("frontend")
     );
     new_git_clone("Polkadot-js apps", 
     "https://github.com/polkadot-js/apps.git",
     "master",
-    &format!("{}-polkadotjs-apps", &project_name)
+    &format!("polkadotjs-apps")
     );
     
     println!(
@@ -126,13 +126,13 @@ pub fn init_substrate(path: String, project_name: String) {
             match i {
                 1 => {
                     pb.set_message("substrate-frontend-template: yarn");
-                    let frontend_path = format!("{}/{}-frontend", path_temp0, temp0.clone());
+                    let frontend_path = format!("{}/frontend", path_temp0);
                     let mut p = build_substrate_frontend(frontend_path);   
                     p.wait().unwrap();
                     },
                 2 => {
                     pb.set_message("polkadot-js-apps: yarn");
-                    let apps_path = format!("{}/{}-polkadotjs-apps", path_temp1, temp1.clone());
+                    let apps_path = format!("{}/polkadotjs-apps", path_temp1);
                     let mut p = build_substrate_frontend(apps_path);       
                     p.wait().unwrap();
                     },
@@ -195,8 +195,8 @@ pub fn new_git_clone(repo: &str, link: &str, branch: &str, directory: &str) {
 
 pub fn initialize_wasm_environment(path: String, project_name: String) {
     let substrate_runtime_init_path = format!(
-        "{}/{}-node/scripts/init.sh",
-        path.clone(), project_name.clone());
+        "{}/node/scripts/init.sh",
+        path.clone());
 
         
 
@@ -211,7 +211,7 @@ pub fn initialize_wasm_environment(path: String, project_name: String) {
 }
 
 pub fn build_substrate_node(project_name: String, path: String) -> std::process::Child {
-    let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
+    let substrate_build_path = format!("{}/node/Cargo.toml", path.clone());
     
     // Build Substrate binary from runtime wasm image
     return Command::new("cargo")
@@ -232,16 +232,26 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
                 .interact()
                 .unwrap()
         {
-            let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
+            let substrate_build_path = format!("{}/node/Cargo.toml", path.clone());
             ctrlc::set_handler(move || {
-                Command::new("cargo")
+                let mut p = Command::new("cargo")
                     .args(&[
                     "build".to_string(),
                     "--release".to_string(),
                     format!("--manifest-path={}", substrate_build_path)
                 ])
+                .stderr(process::Stdio::piped())
                 .spawn()
                 .unwrap();
+
+                for line in BufReader::new(p.stderr.take().unwrap()).lines() {
+                    let line = line.unwrap();
+                    let stripped_line = line.trim();
+                    if !stripped_line.is_empty() {
+                        println!("{}", stripped_line);
+                }
+                p.wait().unwrap();
+                }
             }).expect("Error setting Ctrl-C handler");
         } else {
             println!("It's okay, take your time :)");
@@ -249,7 +259,7 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
         }
     }
     if target=="runtime" {
-        let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
+        let substrate_runtime_build_path = format!("{}/node/runtime/Cargo.toml", path.clone());
         ctrlc::set_handler(move || {
             Command::new("cargo")
             .args(&[
@@ -260,7 +270,7 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
             .spawn()
             .unwrap();
         }).expect("Error setting Ctrl-C handler");
-        let substrate_runtime_wasm_path = format!("{}/{}-node/target/release/wbuild/node-template-runtime/", path.clone(), project_name.clone());
+        let substrate_runtime_wasm_path = format!("{}/node/target/release/wbuild/node-template-runtime/", path.clone());
         println!("{}", format!("{} Runtime WASM file will be generated in {}", PAPER, substrate_runtime_wasm_path).green());      
     }
 }
@@ -272,7 +282,7 @@ pub fn test_substrate(project_name: String, path: String, target: String) {
                 .interact()
                 .unwrap()
         {
-            let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
+            let substrate_build_path = format!("{}/node/Cargo.toml", path.clone());
             ctrlc::set_handler(move || {
                 Command::new("cargo")
                     .args(&[
@@ -288,7 +298,7 @@ pub fn test_substrate(project_name: String, path: String, target: String) {
         }
     }
     if target=="runtime" {
-        let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
+        let substrate_runtime_build_path = format!("{}/node/runtime/Cargo.toml", path.clone());
         ctrlc::set_handler(move || {
             Command::new("cargo")
             .args(&[
@@ -313,9 +323,8 @@ pub fn build_substrate_frontend(path: String) -> std::process::Child {
 // Post-initialization functions
 pub fn run_substrate(project_name: String, path: String) {
     let substrate_bin_path = format!(
-        "{}/{}-node/target/debug/node-template",
-        path,
-        project_name.clone()
+        "{}/node/target/debug/node-template",
+        path
     );
     println!("{:?}", substrate_bin_path);
     let command = Command::new(&substrate_bin_path)
@@ -337,9 +346,8 @@ pub fn run_substrate(project_name: String, path: String) {
 
 pub fn purge_substrate(project_name: String, path: String) {
     let substrate_bin_path = format!(
-        "{}/{}-node/target/release/node-template",
-        path,
-        project_name.clone()
+        "{}/node/target/release/node-template",
+        path
     );
     if Confirmation::new()
         .with_text("\u{26A0} Are you sure you want to remove the whole chain data?")
