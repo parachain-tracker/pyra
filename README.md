@@ -1,6 +1,9 @@
 # Pyra: Distributed Ledger for the people
 
+
 ![Pyra logo](design/Pyra.png)
+
+[![](https://img.shields.io/crates/v/pyra.svg)](https://crates.io/crates/pyra) [![Build Status](https://travis-ci.org/parachain-tracker/pyra.svg?branch=master)](https://travis-ci.org/parachain-tracker/pyra)
 
 ### No more techno-aristocracy.
 
@@ -142,15 +145,28 @@ the-name-of-your-project-polkadotjs-apps
 └── yarn.lock
 ```
 
-## Manage your project with ease
+### Manage your project with ease
 
-You can now open your current work with the command:
+You can now open your current work with the editor on the command:
 
 > pyra open
 
 You can also set editor to use with each project with the command:
 
 > pyra seteditor
+
+If you want to remove the project, run:
+
+> pyra remove
+
+and you can remove multiple projects with checklist feature.
+
+![](./design/remove_project.png)
+
+After choosing the projects, pyra removes the project.
+
+![](./design/project_removed.png)
+
 
 ### Build your node
 
@@ -245,6 +261,8 @@ After choosing the project pyra will submit project data saved in package.json w
     * [ ] Edgeware(StraightEdge)
     * [ ] Subsocial
     * [ ] Kilt
+    * [ ] SpeckleOS
+    * [ ] Hyperledger
 
 * [ ] Deployment infrastructure
     * [ ] Docker
@@ -282,8 +300,8 @@ cd target
 cd release
 ... and it goes on and on...
 ```
-Also, imagine when someone has to deploy the ledger on local/cloud environment. More commands with docker were expected.    
-There were just too many commands for me 🐨.    
+There were just too many commands for me 🐨.
+Also, imagine when someone has to deploy the ledger on local/cloud environment. More commands with docker were expected, and there are bunch of commands for site reliability engineer to handle. Then, when will the general public will face the distributed up and running...? Every blockchain in the field has the undelying technologies which they cannot handle; docker, kubernetes, terraform, prometheus, grafana... the list goes on and on.    
 Eventually, I made the tool to do those in one command.
 
 ### Why pyra....? 
@@ -300,6 +318,12 @@ I wanted to make the name simple, I tried to go with sup(substrate-up), but ther
 
 The project currently is solely developed and managed by [Hyungsuk Kang]().
 
-Buy me a coffee so that the developer can be encouraged to extend this. 
+To contribute to this project: 
+- report errors and improvement request in the issue
+- Make documentation for the generalized commands to build blockchain platform dev interface
+- Make commands for your blockchain platform in [platform](./platform) folder and submit it as PR
+- Use this software
+- Sponsor this project
+
 
 Collaborations are welcome, please leave an issue [here]() or 

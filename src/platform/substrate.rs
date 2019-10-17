@@ -1,15 +1,9 @@
-use rand;
-
-use rand::seq::SliceRandom;
-use rand::Rng;
-
 use std::env;
 use std::fs;
 use std::process;
 use std::process::Command;
 use std::thread;
 use std::time::{Duration, Instant};
-use std::cmp::min;
 use std::io::{BufRead, BufReader};
 
 
@@ -20,7 +14,6 @@ extern crate dirs;
 extern crate colored;
 use colored::*;
 use webbrowser;
-use log::{debug, warn};
 use console::{style, Emoji};
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 
@@ -45,9 +38,6 @@ pub fn init_substrate(path: String, project_name: String) {
     }
 
     let started = Instant::now();
-    let spinner_style = ProgressStyle::default_spinner()
-        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
-        .template("{prefix:.bold.dim} {spinner} {wide_msg}");
 
     println!(
         "{} {}Resolving packages...",
@@ -77,7 +67,6 @@ pub fn init_substrate(path: String, project_name: String) {
     &format!("{}-polkadotjs-apps", &project_name)
     );
     
-    let project_name2 = project_name.clone();
     println!(
         "{} {}Setting WASM environment...",
         style("[3/4]").bold().dim(),
@@ -104,8 +93,6 @@ pub fn init_substrate(path: String, project_name: String) {
     let temp0 = project_name.clone();
     let path_temp0 = path.clone();
     let _ = thread::spawn(move || {
-        let substrate_build_path = format!("{}/{}-node/Cargo.toml", path_temp0, temp0.clone());
-        
         let mut p = build_substrate_node(temp0, path_temp0);
         for line in BufReader::new(p.stderr.take().unwrap()).lines() {
             let line = line.unwrap();
@@ -162,7 +149,7 @@ pub fn init_substrate(path: String, project_name: String) {
     println!("{} Done in {}", SPARKLE, HumanDuration(started.elapsed()));
 }
 
-/* TODO: Ask online crate maintainer to update to working version
+/* TODO: Ask `online` crate maintainer to update to working version
 pub fn check_network() -> bool {
     // with timeout
     let timeout = Duration::new(6, 0);
@@ -223,20 +210,6 @@ pub fn initialize_wasm_environment(path: String, project_name: String) {
     println!("✅  WASM environment is set");
 }
 
-pub fn build_substrate_runtime(project_name: String, path: String) -> std::process::Child {
-    let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
-    env::set_current_dir(substrate_runtime_build_path.clone());
-    return Command::new("cargo")
-        .args(&[
-            "build".to_string(),
-            "--release".to_string(),
-            format!("--manifest-path={}", substrate_runtime_build_path)
-        ])
-        .stderr(process::Stdio::piped())
-        .spawn()
-        .unwrap();
-}
-
 pub fn build_substrate_node(project_name: String, path: String) -> std::process::Child {
     let substrate_build_path = format!("{}/{}-node/Cargo.toml", path.clone(), project_name.clone());
     
@@ -277,7 +250,6 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
     }
     if target=="runtime" {
         let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
-        env::set_current_dir(substrate_runtime_build_path.clone());
         ctrlc::set_handler(move || {
             Command::new("cargo")
             .args(&[
@@ -288,7 +260,7 @@ pub fn build_substrate(project_name: String, path: String, target: String) {
             .spawn()
             .unwrap();
         }).expect("Error setting Ctrl-C handler");
-        let substrate_runtime_wasm_path = format!("{}/{}-node/target/debug/wbuild/node-template-runtime/", path.clone(), project_name.clone());
+        let substrate_runtime_wasm_path = format!("{}/{}-node/target/release/wbuild/node-template-runtime/", path.clone(), project_name.clone());
         println!("{}", format!("{} Runtime WASM file will be generated in {}", PAPER, substrate_runtime_wasm_path).green());      
     }
 }
@@ -317,7 +289,6 @@ pub fn test_substrate(project_name: String, path: String, target: String) {
     }
     if target=="runtime" {
         let substrate_runtime_build_path = format!("{}/{}-node/runtime/Cargo.toml", path.clone(), project_name.clone());
-        env::set_current_dir(substrate_runtime_build_path.clone());
         ctrlc::set_handler(move || {
             Command::new("cargo")
             .args(&[
@@ -385,17 +356,3 @@ pub fn purge_substrate(project_name: String, path: String) {
         return;
     }
 }
-
-pub fn run_substrate_ui(settings_data: serde_json::value::Value, path: String, project_name: String) {
-    
-    Command::new("yarn")
-        .args(&["run".to_string(), "dev".to_string()])
-        .spawn()
-        .expect("Failed to run substrate ui");
-
-    match webbrowser::open("http://localhost:8000") {
-        Ok(_) => (),
-        Err(why) => panic!("Failed to open webbrowser: {}", why)
-    }  
-}
-

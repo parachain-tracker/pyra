@@ -17,7 +17,7 @@ struct Cli {
     #[structopt(short = "i", long = "ui", default_value = "template")]
     ui: String,
 
-    #[structopt(short = "t", long = "target", default_value = "runtime")]
+    #[structopt(short = "t", long = "target", default_value = "node")]
     target: String,
 }
 

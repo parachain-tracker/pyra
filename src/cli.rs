@@ -135,8 +135,6 @@ pub fn init_project(settings_data: serde_json::value::Value) {
         .with_prompt(&prompt(&bold("The Name of the blockchain")))
         .interact()
         .unwrap();
-    let node_name = format!("{}-node", project_name.clone());
-    
     /* TODO: leave author for making package.json
     let author: String = Input::with_theme(&theme)
         .with_prompt(&prompt(&bold("The Author")))
