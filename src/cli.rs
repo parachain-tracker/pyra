@@ -104,11 +104,12 @@ pub fn open_project(settings_data: serde_json::value::Value, project: Option<Str
                 let path = find_project_path(project.clone().unwrap(), settings_data.clone());
                 open_editor(command, path);
                 return;
+            } else {
+                let command = settings_data["commandToOpen"].as_str().unwrap();
+                let path = find_project_path(project.clone().unwrap(), settings_data.clone());
+                println!(">>> Opening {}...", x.green());
+                open_editor(command.to_string(), path);
             }
-            let command = settings_data["commandToOpen"].as_str().unwrap();
-            let path = find_project_path(project.clone().unwrap(), settings_data.clone());
-            println!(">>> Opening {}...", x.green());
-            open_editor(command.to_string(), path);
         }
         // if the input is not in the list, call support
         Some(ref _x) => {
@@ -367,10 +368,12 @@ pub fn remove_project(settings_data: serde_json::value::Value) {
         // Remove the project in json file
         next_settings = delete_project_json(next_settings, result.to_string());
         // Remove it in the disk
-        Command::new("rm")
+        let mut p = Command::new("rm")
             .args(&["-rf", &path])
+            .stderr(process::Stdio::piped())
             .spawn()
-            .expect("Failed to remove project directory");
+            .unwrap();
+        p.wait().unwrap();
         println!(
             "{}",
             format!("Project {} has been successfully removed", result.cyan().bold()).green()

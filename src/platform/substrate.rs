@@ -113,8 +113,6 @@ pub fn init_substrate(path: String, project_name: String) {
             .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
             .template("{prefix:.bold.dim} [{elapsed_precise}] {spinner:.magenta} {wide_msg}");
     for i in 1..3 {
-        let temp0 = project_name.clone();
-        let temp1 = project_name.clone();
         let path_temp0 = path.clone();
         let path_temp1 = path.clone();
         let pb = m.add(ProgressBar::new(100));
